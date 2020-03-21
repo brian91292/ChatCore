@@ -16,7 +16,7 @@ namespace StreamCore
     
     public class StreamCoreInstance
     {
-        private static object _lock = new object();
+        private static object _createLock = new object();
         private static StreamCoreInstance _instance = null;
         private static ServiceProvider _serviceProvider;
 
@@ -24,7 +24,7 @@ namespace StreamCore
 
         public static StreamCoreInstance Create()
         {
-            lock (_lock)
+            lock (_createLock)
             {
                 if (_instance is null)
                 {
@@ -60,7 +60,7 @@ namespace StreamCore
                                 }
                             )
                         )
-                        .AddTransient<IWebSocketService, WebSocket4NetService>();
+                        .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                         //.AddSingleton<IChatMessageHandler, ChatMessageHandler>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
                     _serviceProvider.GetService<IStreamingServiceProvider>();
@@ -69,37 +69,47 @@ namespace StreamCore
             }
         }
 
+        private object _runLock = new object();
         public IStreamingService RunAllServices()
         {
-            if (_serviceProvider == null)
+            lock (_runLock)
             {
-                throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
+                if (_serviceProvider == null)
+                {
+                    throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
+                }
+                var services = _serviceProvider.GetService<IStreamingServiceProvider>();
+                services.Start();
+                return services.GetService();
             }
-            var services = _serviceProvider.GetService<IStreamingServiceProvider>();
-            services.Start();
-            return services.GetService();
         }
 
         public TwitchServiceProvider RunTwitchServices()
         {
-            if (_serviceProvider == null)
+            lock (_runLock)
             {
-                throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
+                if (_serviceProvider == null)
+                {
+                    throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
+                }
+                var twitch = _serviceProvider.GetService<TwitchServiceProvider>();
+                twitch.Start();
+                return twitch;
             }
-            var twitch = _serviceProvider.GetService<TwitchServiceProvider>();
-            twitch.Start();
-            return twitch;
         }
 
         public MixerServiceProvider RunMixerServices()
         {
-            if (_serviceProvider == null)
+            lock (_runLock)
             {
-                throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
+                if (_serviceProvider == null)
+                {
+                    throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
+                }
+                var mixer = _serviceProvider.GetService<MixerServiceProvider>();
+                mixer.Start();
+                return mixer;
             }
-            var mixer = _serviceProvider.GetService<MixerServiceProvider>();
-            mixer.Start();
-            return mixer;
         }
     }
 }

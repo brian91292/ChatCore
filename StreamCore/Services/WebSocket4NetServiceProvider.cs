@@ -11,7 +11,7 @@ using WebSocket4Net;
 
 namespace StreamCore.Services
 {
-    public class WebSocket4NetService : IWebSocketService
+    public class WebSocket4NetServiceProvider : IWebSocketService
     {
         public bool IsConnected => !(_client is null) && DateTime.UtcNow.Subtract(_client.LastActiveTime.ToUniversalTime()).TotalMinutes > 2;
         public bool AutoReconnect { get; set; } = true;
@@ -20,7 +20,7 @@ namespace StreamCore.Services
         public event Action OnError;
         public event Action<Assembly, string> OnMessageReceived;
 
-        public WebSocket4NetService(ILogger<WebSocket4NetService> logger)
+        public WebSocket4NetServiceProvider(ILogger<WebSocket4NetServiceProvider> logger)
         {
             _logger = logger;
         }

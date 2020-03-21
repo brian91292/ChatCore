@@ -46,6 +46,7 @@ namespace StreamCore.Services.Twitch
         {
             _logger.LogInformation("Twitch connection opened");
             _websocketService.SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
+
         }
 
         public void Stop()

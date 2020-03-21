@@ -7,7 +7,7 @@ namespace StreamCore.Interfaces
     public interface IStreamingService
     {
         Type ServiceType { get; }
-        Action<IChatMessage> OnMessageReceived { get; set; }
+        event Action<IChatMessage> OnMessageReceived;
 
         void JoinChannel(string channel);
         void SendRawMessage(string rawMessage);

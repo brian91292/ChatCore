@@ -20,8 +20,19 @@ namespace StreamCoreTester
 
             var streamCore = StreamCoreInstance.Create();
             var streamServiceProvider = streamCore.RunAllServices();
+            streamServiceProvider.OnMessageReceived += StreamServiceProvider_OnMessageReceived;
 
-            Console.WriteLine($"StreamService is of type {streamServiceProvider.ServiceType.Name}");
+            //Console.WriteLine($"StreamService is of type {streamServiceProvider.ServiceType.Name}");
+        }
+
+        private void StreamServiceProvider_OnMessageReceived(StreamCore.Interfaces.IChatMessage msg)
+        {
+            Console.WriteLine($"Message: {msg.Message}");
+            Console.WriteLine($"Metadata: ");
+            foreach(var meta in msg.Metadata)
+            {
+                Console.WriteLine($"{meta.Key}: {meta.Value}");
+            }
         }
     }
 }

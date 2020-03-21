@@ -14,60 +14,111 @@ namespace StreamCore.Services.Twitch
     {
         public Type ServiceType => typeof(TwitchService);
 
-        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser)
+        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, IWebSocketService websocketService, Random rand)
         {
             _logger = logger;
             _messageParser = messageParser;
+            _websocketService = websocketService;
+            _rand = rand;
         }
 
         private ILogger _logger;
         private IChatMessageParser _messageParser;
-        
-        internal void HandleOnRawMessageReceived(Assembly assembly, string message)
+        private IWebSocketService _websocketService;
+        private Random _rand;
+
+        internal void Start()
         {
-            if(_messageParser.ParseRawMessage(message, out var parsedMessages))
+            _websocketService.OnOpen += _websocketService_OnOpen;
+            _websocketService.OnClose += _websocketService_OnClose;
+            _websocketService.OnMessageReceived += _websocketService_OnMessageReceived;
+            _websocketService.Connect("wss://irc-ws.chat.twitch.tv:443");
+        }
+
+        internal void Stop()
+        {
+            _websocketService.Disconnect();
+        }
+
+        private void _websocketService_OnMessageReceived(Assembly assembly, string message)
+        {
+            if (_messageParser.ParseRawMessage(message, out var parsedMessages))
             {
-                foreach(TwitchMessage twitchMessage in parsedMessages)
+                foreach (TwitchMessage twitchMessage in parsedMessages)
                 {
-                    switch(twitchMessage.Type)
+                    switch (twitchMessage.Type)
                     {
                         case "PING":
-                            SendRawMessageAction?.Invoke(null, "PONG :tmi.twitch.tv");
+                            SendRawMessage("PONG :tmi.twitch.tv");
                             _logger.LogInformation("Pong!");
                             continue;
-                        case "001":  // sucessful login
-                            JoinChannelAction?.Invoke(null, "brian91292");
+                        case "001":  // successful login
+                            JoinChannel("brian91292"); // TODO: allow user to set channel somehow
                             continue;
-                        default:
-                            _logger.LogInformation($"Message: {twitchMessage.Message}");
-                            break;
+                        case "PRIVMSG":
+                            foreach (var kvp in _onMessageReceivedCallbacks)
+                            {
+                                if (kvp.Key == assembly)
+                                {
+                                    continue;
+                                }
+                                kvp.Value?.Invoke(twitchMessage);
+                            }
+                            continue;
                     }
                 }
             }
         }
 
-        internal event Action<Assembly, string> SendRawMessageAction;
+        private void _websocketService_OnClose()
+        {
+            _logger.LogInformation("Twitch connection closed");
+        }
+
+        private void _websocketService_OnOpen()
+        {
+            _logger.LogInformation("Twitch connection opened");
+            _websocketService.SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
+            _websocketService.SendMessage($"NICK justinfan{_rand.Next(10000, 1000000)}");
+        }
+
         public void SendRawMessage(string rawMessage)
         {
-            SendRawMessageAction?.Invoke(Assembly.GetCallingAssembly(), rawMessage);
+            if (_websocketService.IsConnected)
+            {
+                _websocketService.SendMessage(rawMessage);
+                _websocketService_OnMessageReceived(Assembly.GetCallingAssembly(), rawMessage);
+            }
         }
 
-        internal event Action<Assembly, string, string> SendTextMessageAction;
         public void SendTextMessage(string message, string channel)
         {
-            SendTextMessageAction?.Invoke(Assembly.GetCallingAssembly(), message, channel);
+            if (_websocketService.IsConnected)
+            {
+                string rawMessage = $"PRIVMSG #{channel} :{message}";
+                _websocketService.SendMessage(rawMessage);
+                _websocketService_OnMessageReceived(Assembly.GetCallingAssembly(), rawMessage);
+            }
         }
 
-        internal event Action<Assembly, string, string> SendCommandAction;
         public void SendCommand(string command, string channel)
         {
-            SendCommandAction?.Invoke(Assembly.GetCallingAssembly(), command, channel);
+            if (_websocketService.IsConnected)
+            {
+                string rawMessage = $"PRIVMSG #{channel} :{command}";
+                _websocketService.SendMessage(rawMessage);
+                _websocketService_OnMessageReceived(Assembly.GetCallingAssembly(), rawMessage);
+            }
         }
 
-        internal event Action<Assembly, string> JoinChannelAction;
         public void JoinChannel(string channel)
         {
-            JoinChannelAction?.Invoke(Assembly.GetCallingAssembly(), channel);
+            if (_websocketService.IsConnected)
+            {
+                string rawMessage = $"JOIN #{channel}";
+                _websocketService.SendMessage(rawMessage);
+                _websocketService_OnMessageReceived(Assembly.GetCallingAssembly(), rawMessage);
+            }
         }
     }
 }

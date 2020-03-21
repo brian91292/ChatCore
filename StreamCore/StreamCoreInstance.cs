@@ -60,7 +60,7 @@ namespace StreamCore
                                 }
                             )
                         )
-                        .AddTransient<IWebSocketService, WebSocketService>();
+                        .AddTransient<IWebSocketService, WebSocket4NetService>();
                         //.AddSingleton<IChatMessageHandler, ChatMessageHandler>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
                     _serviceProvider.GetService<IStreamingServiceProvider>();

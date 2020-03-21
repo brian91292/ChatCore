@@ -8,11 +8,12 @@ namespace StreamCore.Interfaces
     public interface IWebSocketService
     {
         bool IsConnected { get; }
+        bool AutoReconnect { get; set; }
         event Action OnOpen;
         event Action OnClose;
         event Action OnError;
         event Action<Assembly, string> OnMessageReceived;
-        void Connect(string uri, int port = 443);
+        void Connect(string uri);
         void Disconnect();
         void SendMessage(string message);
     }

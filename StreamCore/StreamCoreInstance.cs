@@ -38,6 +38,7 @@ namespace StreamCore
                         .AddSingleton<Random>()
                         .AddSingleton<TwitchService>()
                         .AddSingleton<TwitchServiceManager>()
+                        .AddSingleton<TwitchMessageParser>()
                         .AddSingleton<MixerService>()
                         .AddSingleton<MixerServiceManager>()
                         .AddSingleton<IStreamingService>(x =>

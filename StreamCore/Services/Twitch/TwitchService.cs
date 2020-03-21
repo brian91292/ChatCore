@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using StreamCore.Interfaces;
+using StreamCore.Models.Twitch;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -13,64 +14,36 @@ namespace StreamCore.Services.Twitch
     {
         public Type ServiceType => typeof(TwitchService);
 
-        public TwitchService(ILogger<TwitchService> logger)
+        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser)
         {
             _logger = logger;
+            _messageParser = messageParser;
         }
 
         private ILogger _logger;
-
-        private readonly Regex _twitchMessageRegex = new Regex(@"^(?:@(?<Tags>[^\r\n ]*) +|())(?::(?<HostName>[^\r\n ]+) +|())(?<MessageType>[^\r\n ]+)(?: +(?<ChannelName>[^:\r\n ]+[^\r\n ]*(?: +[^:\r\n ]+[^\r\n ]*)*)|())?(?: +:(?<Message>[^\r\n]*)| +())?[\r\n]*$", RegexOptions.Compiled | RegexOptions.Multiline);
-        private readonly Regex _tagRegex = new Regex(@"(?<Tag>[^@^;^=]+)=(?<Value>[^;\s]+)", RegexOptions.Compiled | RegexOptions.Multiline);
-
+        private IChatMessageParser _messageParser;
         
         internal void HandleOnRawMessageReceived(Assembly assembly, string message)
         {
-            var matches = _twitchMessageRegex.Matches(message);
-            if(matches.Count == 0)
+            if(_messageParser.ParseRawMessage(message, out var parsedMessages))
             {
-                _logger.LogInformation($"Unhandled message: {message}");
-                return;
-            }
-
-            //_logger.LogInformation($"Parsing message {message}");
-            foreach(Match match in matches)
-            {
-                if (!match.Groups["MessageType"].Success)
+                foreach(TwitchMessage twitchMessage in parsedMessages)
                 {
-                    _logger.LogInformation($"Failed to get messageType for message {message}");
-                    return;
-                }
-
-                string type = match.Groups["MessageType"].Value;
-                string matchMessage = "";
-                switch(type)
-                {
-                    case "PING":
-                        SendRawMessageAction?.Invoke(null, "PONG :tmi.twitch.tv");
-                        _logger.LogInformation("Pong!");
-                        continue;
-                    case "001":  // sucessful login
-                        JoinChannelAction?.Invoke(null, "brian91292");
-                        continue;
-                    default:
-                        matchMessage = match.Groups["Message"].Success ? match.Groups["Message"].Value : "None";
-                        _logger.LogInformation($"Received message of type {type}. Message: {matchMessage}");
-
-                        break;
+                    switch(twitchMessage.Type)
+                    {
+                        case "PING":
+                            SendRawMessageAction?.Invoke(null, "PONG :tmi.twitch.tv");
+                            _logger.LogInformation("Pong!");
+                            continue;
+                        case "001":  // sucessful login
+                            JoinChannelAction?.Invoke(null, "brian91292");
+                            continue;
+                        default:
+                            _logger.LogInformation($"Message: {twitchMessage.Message}");
+                            break;
+                    }
                 }
             }
-
-            //foreach(var kvp in _onMessageReceivedCallbacks)
-            //{
-            //    if(kvp.Key != assembly)
-            //    {
-            //        try
-            //        {
-            //            kvp.Value?.Invoke()
-            //        }
-            //    }
-            //}
         }
 
         internal event Action<Assembly, string> SendRawMessageAction;

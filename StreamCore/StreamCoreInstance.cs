@@ -35,6 +35,7 @@ namespace StreamCore
                         {
                             builder.AddConsole();
                         })
+                        .AddSingleton<Random>()
                         .AddSingleton<TwitchService>()
                         .AddSingleton<TwitchServiceManager>()
                         .AddSingleton<MixerService>()
@@ -49,11 +50,11 @@ namespace StreamCore
                                 }
                             )
                         )
-                        .AddSingleton<IStreamingServiceProvider>(x =>
+                        .AddSingleton<IStreamingServiceManager>(x =>
                             new StreamServiceProvider(
                                 x.GetService<ILogger<StreamServiceProvider>>(),
                                 x.GetService<IStreamingService>(),
-                                new List<IStreamingServiceProvider>
+                                new List<IStreamingServiceManager>
                                 {
                                     x.GetService<TwitchServiceManager>(),
                                     x.GetService<MixerServiceManager>()
@@ -62,7 +63,7 @@ namespace StreamCore
                         )
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
-                    _serviceProvider.GetService<IStreamingServiceProvider>();
+                    _serviceProvider.GetService<IStreamingServiceManager>();
                 }
                 return _instance;
             }
@@ -77,7 +78,7 @@ namespace StreamCore
                 {
                     throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
                 }
-                var services = _serviceProvider.GetService<IStreamingServiceProvider>();
+                var services = _serviceProvider.GetService<IStreamingServiceManager>();
                 services.Start();
                 return services.GetService();
             }

@@ -45,11 +45,10 @@ namespace StreamCore.Services
                         try
                         {
                             _client = new WebSocket(uri);
-                            _client.Opened += _client_Opened; ;
+                            _client.Opened += _client_Opened;
                             _client.Closed += _client_Closed;
                             _client.Error += _client_Error;
-                            _client.MessageReceived += _client_MessageReceived; ;
-                            _client.EnableAutoSendPing = true;
+                            _client.MessageReceived += _client_MessageReceived;
                             await _client.OpenAsync();
                             _reconnectDelay = 1000;
                         }

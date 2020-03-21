@@ -6,7 +6,7 @@ using System.Text;
 
 namespace StreamCore.Services.Mixer
 {
-    public class MixerServiceManager : IStreamingServiceProvider, IDisposable
+    public class MixerServiceManager : IStreamingServiceManager, IDisposable
     {
 
         public event Action<IChatMessage> OnMessageReceived;

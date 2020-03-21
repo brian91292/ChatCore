@@ -5,7 +5,7 @@ using System.Text;
 
 namespace StreamCore.Interfaces
 {
-    public interface IStreamingServiceProvider
+    public interface IStreamingServiceManager
     {
         void Start();
         void Stop();

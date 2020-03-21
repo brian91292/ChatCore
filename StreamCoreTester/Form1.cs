@@ -18,7 +18,10 @@ namespace StreamCoreTester
             InitializeComponent();
 
 
-            StreamCoreInstance.Create();
+            var streamCore = StreamCoreInstance.Create();
+            var streamServiceProvider = streamCore.RunAllServices();
+
+            Console.WriteLine($"StreamService is of type {streamServiceProvider.ServiceType.Name}");
         }
     }
 }

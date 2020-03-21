@@ -10,7 +10,6 @@ namespace StreamCore.Interfaces
         event Action<IChatMessage> OnMessageReceived;
 
         void JoinChannel(string channel);
-        void SendRawMessage(string rawMessage);
         void SendTextMessage(string message, string channel = null);
         void SendCommand(string command, string channel = null);
     }

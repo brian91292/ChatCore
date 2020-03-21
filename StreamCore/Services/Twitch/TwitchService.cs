@@ -79,46 +79,47 @@ namespace StreamCore.Services.Twitch
         {
             _logger.LogInformation("Twitch connection opened");
             _websocketService.SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
-            _websocketService.SendMessage($"NICK justinfan{_rand.Next(10000, 1000000)}");
+            _websocketService.SendMessage($"NICK justinfan{_rand.Next(10000, 1000000)}"); // TODO: implement way to enter credentials
         }
 
-        public void SendRawMessage(string rawMessage)
+        private void SendRawMessage(Assembly assembly, string rawMessage, bool forwardToSharedClients = false)
         {
             if (_websocketService.IsConnected)
             {
                 _websocketService.SendMessage(rawMessage);
-                _websocketService_OnMessageReceived(Assembly.GetCallingAssembly(), rawMessage);
+                if (forwardToSharedClients)
+                {
+                    _websocketService_OnMessageReceived(assembly, rawMessage);
+                }
             }
+        }
+
+        /// <summary>
+        /// Sends a raw message to the Twitch server
+        /// </summary>
+        /// <param name="rawMessage">The raw message to send.</param>
+        /// <param name="forwardToSharedClients">
+        /// Whether or not the message should also be sent to other clients in the assembly that implement StreamCore, or just directly to the Twitch server.<br/>
+        /// This should only be set to true if the Twitch server would rebroadcast this message to other external clients as a response to the message.
+        /// </param>
+        public void SendRawMessage(string rawMessage, bool forwardToSharedClients = false)
+        {
+            SendRawMessage(Assembly.GetCallingAssembly(), rawMessage, forwardToSharedClients);
         }
 
         public void SendTextMessage(string message, string channel)
         {
-            if (_websocketService.IsConnected)
-            {
-                string rawMessage = $"PRIVMSG #{channel} :{message}";
-                _websocketService.SendMessage(rawMessage);
-                _websocketService_OnMessageReceived(Assembly.GetCallingAssembly(), rawMessage);
-            }
+            SendRawMessage(Assembly.GetCallingAssembly(), $"PRIVMSG #{channel} :{message}", true);
         }
 
         public void SendCommand(string command, string channel)
         {
-            if (_websocketService.IsConnected)
-            {
-                string rawMessage = $"PRIVMSG #{channel} :{command}";
-                _websocketService.SendMessage(rawMessage);
-                _websocketService_OnMessageReceived(Assembly.GetCallingAssembly(), rawMessage);
-            }
+            SendRawMessage(Assembly.GetCallingAssembly(), $"PRIVMSG #{channel} :/{command}");
         }
 
         public void JoinChannel(string channel)
         {
-            if (_websocketService.IsConnected)
-            {
-                string rawMessage = $"JOIN #{channel}";
-                _websocketService.SendMessage(rawMessage);
-                _websocketService_OnMessageReceived(Assembly.GetCallingAssembly(), rawMessage);
-            }
+            SendRawMessage(Assembly.GetCallingAssembly(), $"JOIN #{channel}");
         }
     }
 }

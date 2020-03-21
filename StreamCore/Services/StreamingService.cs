@@ -55,14 +55,6 @@ namespace StreamCore.Services
             }
         }
 
-        public void SendRawMessage(string rawMessage)
-        {
-            foreach (var service in _streamingServices)
-            {
-                service.SendRawMessage(rawMessage);
-            }
-        }
-
         public void JoinChannel(string channel)
         {
             foreach (var service in _streamingServices)

@@ -6,10 +6,8 @@ using System.Text;
 
 namespace StreamCore.Services
 {
-    public class StreamingService : IStreamingService, IDisposable
-    {
-        public event Action<IChatMessage> OnMessageReceived;
-
+    public class StreamingService : StreamingServiceBase, IStreamingService
+    { 
         public Type ServiceType => typeof(StreamingService);
 
         public StreamingService(ILogger<StreamingService> logger, IList<IStreamingService> streamingServices)
@@ -28,11 +26,17 @@ namespace StreamCore.Services
         private void HandleMessageReceived(IChatMessage message)
         {
             _logger.LogInformation($"Message received from {message.Author}. Message: {message.Message}");
-        }
-
-        public void Dispose()
-        {
-            _logger.LogInformation("Disposed");
+            foreach(var callback in _onMessageReceivedCallbacks.Values)
+            {
+                try
+                {
+                    callback?.Invoke(message);
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex, "An exception occurred in HandleMessageReceived");
+                }
+            }
         }
     }
 }

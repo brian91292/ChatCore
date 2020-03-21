@@ -7,6 +7,7 @@ using StreamCore.Services.Mixer;
 using StreamCore.Services.Twitch;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 
@@ -58,7 +59,8 @@ namespace StreamCore
                                     x.GetService<MixerServiceProvider>()
                                 }
                             )
-                        );
+                        )
+                        .AddTransient<IWebSocketService, WebSocketService>();
                         //.AddSingleton<IChatMessageHandler, ChatMessageHandler>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
                     _serviceProvider.GetService<IStreamingServiceProvider>();

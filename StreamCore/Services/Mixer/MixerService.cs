@@ -1,15 +1,15 @@
 ﻿using Microsoft.Extensions.Logging;
 using StreamCore.Interfaces;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace StreamCore.Services.Mixer
 {
-    public class MixerService : IStreamingService, IDisposable
+    public class MixerService : StreamingServiceBase, IStreamingService
     {
-        public event Action<IChatMessage> OnMessageReceived;
-
         public Type ServiceType => typeof(MixerService);
 
         public MixerService(ILogger<MixerService> logger)
@@ -18,11 +18,5 @@ namespace StreamCore.Services.Mixer
         }
 
         private ILogger _logger;
-
-
-        public void Dispose()
-        {
-            _logger.LogInformation("Disposed");
-        }
     }
 }

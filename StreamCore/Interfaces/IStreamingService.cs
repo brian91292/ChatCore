@@ -7,7 +7,6 @@ namespace StreamCore.Interfaces
     public interface IStreamingService
     {
         Type ServiceType { get; }
-
-        event Action<IChatMessage> OnMessageReceived;
+        Action<IChatMessage> OnMessageReceived { get; set; }
     }
 }

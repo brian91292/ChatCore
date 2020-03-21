@@ -2,6 +2,7 @@
 using StreamCore.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace StreamCore.Services
@@ -29,7 +30,7 @@ namespace StreamCore.Services
             {
                 service.Start();
             }
-            _logger.LogInformation("All streaming services have been started");
+            _logger.LogInformation($"Streaming services have been started");
         }
 
         public void Stop()
@@ -38,7 +39,7 @@ namespace StreamCore.Services
             {
                 service.Stop();
             }
-            _logger.LogInformation("All streaming services have been stopped");
+            _logger.LogInformation($"Streaming services have been stopped");
         }
 
         public void Dispose()

@@ -6,12 +6,12 @@ using System.Text;
 
 namespace StreamCore.Services.Mixer
 {
-    public class MixerServiceProvider : IStreamingServiceProvider, IDisposable
+    public class MixerServiceManager : IStreamingServiceProvider, IDisposable
     {
 
         public event Action<IChatMessage> OnMessageReceived;
 
-        public MixerServiceProvider(ILogger<MixerServiceProvider> logger, MixerService mixerService)
+        public MixerServiceManager(ILogger<MixerServiceManager> logger, MixerService mixerService)
         {
             _logger = logger;
             _mixerService = mixerService;

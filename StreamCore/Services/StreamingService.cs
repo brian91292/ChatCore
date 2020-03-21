@@ -25,7 +25,7 @@ namespace StreamCore.Services
 
         private void HandleMessageReceived(IChatMessage message)
         {
-            _logger.LogInformation($"Message received from {message.Author}. Message: {message.Message}");
+            //_logger.LogDebug($"Message received from {message.Author}. Message: {message.Message}");
             foreach(var callback in _onMessageReceivedCallbacks.Values)
             {
                 try

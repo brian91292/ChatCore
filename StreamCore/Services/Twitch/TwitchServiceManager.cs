@@ -6,12 +6,12 @@ using System.Text;
 
 namespace StreamCore.Services.Twitch
 {
-    public class TwitchServiceProvider : IStreamingServiceProvider, IDisposable
+    public class TwitchServiceManager : IStreamingServiceProvider, IDisposable
     {
 
         public event Action<IChatMessage> OnMessageReceived;
 
-        public TwitchServiceProvider(ILogger<TwitchServiceProvider> logger, TwitchService twitchService, IWebSocketService websocketService)
+        public TwitchServiceManager(ILogger<TwitchServiceManager> logger, TwitchService twitchService, IWebSocketService websocketService)
         {
             _logger = logger;
             _twitchService = twitchService;

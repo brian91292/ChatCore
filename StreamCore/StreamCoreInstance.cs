@@ -36,9 +36,9 @@ namespace StreamCore
                             builder.AddConsole();
                         })
                         .AddSingleton<TwitchService>()
-                        .AddSingleton<TwitchServiceProvider>()
+                        .AddSingleton<TwitchServiceManager>()
                         .AddSingleton<MixerService>()
-                        .AddSingleton<MixerServiceProvider>()
+                        .AddSingleton<MixerServiceManager>()
                         .AddSingleton<IStreamingService>(x =>
                             new StreamingService(
                                 x.GetService<ILogger<StreamingService>>(),
@@ -55,8 +55,8 @@ namespace StreamCore
                                 x.GetService<IStreamingService>(),
                                 new List<IStreamingServiceProvider>
                                 {
-                                    x.GetService<TwitchServiceProvider>(),
-                                    x.GetService<MixerServiceProvider>()
+                                    x.GetService<TwitchServiceManager>(),
+                                    x.GetService<MixerServiceManager>()
                                 }
                             )
                         )
@@ -83,7 +83,7 @@ namespace StreamCore
             }
         }
 
-        public TwitchServiceProvider RunTwitchServices()
+        public TwitchServiceManager RunTwitchServices()
         {
             lock (_runLock)
             {
@@ -91,13 +91,13 @@ namespace StreamCore
                 {
                     throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
                 }
-                var twitch = _serviceProvider.GetService<TwitchServiceProvider>();
+                var twitch = _serviceProvider.GetService<TwitchServiceManager>();
                 twitch.Start();
                 return twitch;
             }
         }
 
-        public MixerServiceProvider RunMixerServices()
+        public MixerServiceManager RunMixerServices()
         {
             lock (_runLock)
             {
@@ -105,7 +105,7 @@ namespace StreamCore
                 {
                     throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
                 }
-                var mixer = _serviceProvider.GetService<MixerServiceProvider>();
+                var mixer = _serviceProvider.GetService<MixerServiceManager>();
                 mixer.Start();
                 return mixer;
             }

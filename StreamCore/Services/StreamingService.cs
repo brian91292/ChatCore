@@ -38,5 +38,21 @@ namespace StreamCore.Services
                 }
             }
         }
+
+        public void SendTextMessage(string message, string channel)
+        {
+            foreach(var service in _streamingServices)
+            {
+                service.SendTextMessage(message, channel);
+            }
+        }
+
+        public void SendCommand(string command, string channel)
+        {
+            foreach(var service in _streamingServices)
+            {
+                service.SendCommand(command, channel);
+            }
+        }
     }
 }

@@ -18,5 +18,17 @@ namespace StreamCore.Services.Twitch
         }
 
         private ILogger _logger;
+
+        internal event Action<string, string> SendTextMessageAction;
+        public void SendTextMessage(string message, string channel)
+        {
+            SendTextMessageAction?.Invoke(message, channel);
+        }
+
+        internal event Action<string, string> SendCommandAction;
+        public void SendCommand(string command, string channel)
+        {
+            SendCommandAction?.Invoke(command, channel);
+        }
     }
 }

@@ -18,5 +18,15 @@ namespace StreamCore.Services.Mixer
         }
 
         private ILogger _logger;
+
+        public void SendTextMessage(string message, string channel = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SendCommand(string command, string channel = null)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

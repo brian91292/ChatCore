@@ -16,6 +16,25 @@ namespace StreamCore.Services.Twitch
             _logger = logger;
             _twitchService = twitchService;
             _websocketService = websocketService;
+
+            _twitchService.SendCommandAction += _twitchService_SendCommand;
+            _twitchService.SendTextMessageAction += _twitchService_SendTextMessageAction;
+        }
+
+        private void _twitchService_SendTextMessageAction(string message, string channel)
+        {
+            if (_websocketService.IsConnected)
+            {
+                _websocketService.SendMessage($"PRIVMSG #{channel} :{message}");
+            }
+        }
+
+        private void _twitchService_SendCommand(string command, string channel)
+        {
+            if(_websocketService.IsConnected)
+            {
+                _websocketService.SendMessage($"PRIVMSG #{channel} :{command}");
+            }
         }
 
         private ILogger _logger;

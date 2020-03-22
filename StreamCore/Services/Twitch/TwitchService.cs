@@ -23,12 +23,14 @@ namespace StreamCore.Services.Twitch
             _messageParser = messageParser;
             _websocketService = websocketService;
             _rand = rand;
+            _username = $"justinfan{_rand.Next(10000, 1000000)}".ToLower(); // TODO: implement way to enter credentials
         }
 
         private ILogger _logger;
         private IChatMessageParser _messageParser;
         private IWebSocketService _websocketService;
         private Random _rand;
+        private string _username;
 
         internal void Start()
         {
@@ -45,7 +47,7 @@ namespace StreamCore.Services.Twitch
 
         private void _websocketService_OnMessageReceived(Assembly assembly, string message)
         {
-           
+            _logger.LogInformation(message);
             if (_messageParser.ParseRawMessage(message, out var parsedMessages))
             {
                 foreach (TwitchMessage twitchMessage in parsedMessages)
@@ -66,9 +68,7 @@ namespace StreamCore.Services.Twitch
                         case "USERNOTICE":
                         case "USERSTATE":
                         case "GLOBALUSERSTATE":
-                            break;
-                        case "NOTICE":
-                            _onMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
+                            _logger.LogInformation($"No handler exists for type {twitchMessage.Type}");
                             continue;
                         case "PING":
                             SendRawMessage("PONG :tmi.twitch.tv");
@@ -76,26 +76,34 @@ namespace StreamCore.Services.Twitch
                         case "001":  // successful login
                             JoinChannel("brian91292"); // TODO: allow user to set channel somehow
                             continue;
+                        case "NOTICE":
                         case "PRIVMSG":
                             _onMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
                             continue;
                         case "JOIN":
-                            if(!_channels.ContainsKey(twitchMessage.Channel.Id))
+                            if(twitchMessage.Sender.Name == _username)
                             {
-                                _channels[twitchMessage.Channel.Id] = (TwitchChannel)twitchMessage.Channel;
-                                _logger.LogInformation($"Added channel {twitchMessage.Channel.Id} to the channel list.");
+                                if (!_channels.ContainsKey(twitchMessage.Channel.Id))
+                                {
+                                    _channels[twitchMessage.Channel.Id] = (TwitchChannel)twitchMessage.Channel;
+                                    _logger.LogInformation($"Added channel {twitchMessage.Channel.Id} to the channel list.");
+                                    _onJoinRoomCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                                }
                             }
-                            _onJoinChannelCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
                             continue;
                         case "PART":
-                            if(_channels.TryRemove(twitchMessage.Channel.Id, out var channel))
+                            if (twitchMessage.Sender.Name == _username)
                             {
-                                _logger.LogInformation($"Removed channel {channel.Id} from the channel list.");
+                                if (_channels.TryRemove(twitchMessage.Channel.Id, out var channel))
+                                {
+                                    _logger.LogInformation($"Removed channel {channel.Id} from the channel list.");
+                                    _onLeaveRoomCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                                }
                             }
                             continue;
                         case "ROOMSTATE":
                             _channels[twitchMessage.Channel.Id] = (TwitchChannel)twitchMessage.Channel;
-                            _onChannelStateUpdatedCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                            _onRoomStateUpdatedCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
                             continue;
                     }
                 }
@@ -111,7 +119,7 @@ namespace StreamCore.Services.Twitch
         {
             _logger.LogInformation("Twitch connection opened");
             _websocketService.SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
-            _websocketService.SendMessage($"NICK justinfan{_rand.Next(10000, 1000000)}"); // TODO: implement way to enter credentials
+            _websocketService.SendMessage($"NICK {_username}"); 
         }
 
         private void SendRawMessage(Assembly assembly, string rawMessage, bool forwardToSharedClients = false)
@@ -152,6 +160,11 @@ namespace StreamCore.Services.Twitch
         public void JoinChannel(string channel)
         {
             SendRawMessage(Assembly.GetCallingAssembly(), $"JOIN #{channel.ToLower()}");
+        }
+
+        public void PartChannel(string channel)
+        {
+            SendRawMessage(Assembly.GetCallingAssembly(), $"PART #{channel.ToLower()}");
         }
     }
 }

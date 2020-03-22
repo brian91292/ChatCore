@@ -21,20 +21,5 @@ namespace StreamCore.Services.Mixer
         {
             throw new NotImplementedException();
         }
-
-        public void SendCommand(string command, string channel = null)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SendRawMessage(string rawMessage)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void JoinChannel(string channel)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

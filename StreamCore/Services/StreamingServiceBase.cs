@@ -17,25 +17,25 @@ namespace StreamCore.Services
             remove => _onMessageReceivedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onJoinChannelCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
-        public event Action<IChatChannel> OnJoinChannel
+        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onJoinRoomCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
+        public event Action<IChatChannel> OnJoinRoom
         {
-            add => _onJoinChannelCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
-            remove => _onJoinChannelCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
+            add => _onJoinRoomCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
+            remove => _onJoinRoomCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onLeaveChannelCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
-        public event Action<IChatChannel> OnLeaveChannel
+        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onLeaveRoomCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
+        public event Action<IChatChannel> OnLeaveRoom
         {
-            add => _onLeaveChannelCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
-            remove => _onLeaveChannelCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
+            add => _onLeaveRoomCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
+            remove => _onLeaveRoomCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onChannelStateUpdatedCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
-        public event Action<IChatChannel> OnChannelStateUpdated
+        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onRoomStateUpdatedCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
+        public event Action<IChatChannel> OnRoomStateUpdated
         {
-            add => _onChannelStateUpdatedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
-            remove => _onChannelStateUpdatedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
+            add => _onRoomStateUpdatedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
+            remove => _onRoomStateUpdatedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
     }
 }

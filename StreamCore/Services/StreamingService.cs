@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using StreamCore.Interfaces;
+using StreamCore.Services.Mixer;
+using StreamCore.Services.Twitch;
 using StreamCore.Utilities;
 using System;
 using System.Collections.Generic;
@@ -18,23 +20,23 @@ namespace StreamCore.Services
             foreach (var service in _streamingServices)
             {
                 service.OnMessageReceived += HandleMessageReceived;
-                service.OnJoinChannel += HandleOnJoinChannel;
-                service.OnChannelStateUpdated += HandleChannelStateUpdated;
-                service.OnLeaveChannel += HandleOnLeaveChannel;
+                service.OnJoinRoom += HandleOnJoinRoom;
+                service.OnRoomStateUpdated += HandleOnRoomStateUpdated;
+                service.OnLeaveRoom += HandleOnLeaveRoom;
             }
         }
 
         private ILogger _logger;
         private IList<IStreamingService> _streamingServices;
 
-        private void HandleOnLeaveChannel(IChatChannel channel)
+        private void HandleOnLeaveRoom(IChatChannel channel)
         {
-            _onLeaveChannelCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            _onLeaveRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
         }
 
-        private void HandleChannelStateUpdated(IChatChannel channel)
+        private void HandleOnRoomStateUpdated(IChatChannel channel)
         {
-            _onChannelStateUpdatedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            _onRoomStateUpdatedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
         }
 
         private void HandleMessageReceived(IChatMessage message)
@@ -42,9 +44,9 @@ namespace StreamCore.Services
             _onMessageReceivedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), message, _logger);
         }
 
-        private void HandleOnJoinChannel(IChatChannel channel)
+        private void HandleOnJoinRoom(IChatChannel channel)
         {
-            _onJoinChannelCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            _onJoinRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
         }
 
         public void SendTextMessage(string message, string channel)
@@ -53,6 +55,30 @@ namespace StreamCore.Services
             {
                 service.SendTextMessage(message, channel);
             }
+        }
+
+        public TwitchService GetTwitchService()
+        {
+            foreach (var service in _streamingServices)
+            {
+                if (service is TwitchService)
+                {
+                    return service as TwitchService;
+                }
+            }
+            return null;
+        }
+
+        public MixerService GetMixerService()
+        {
+            foreach (var service in _streamingServices)
+            {
+                if (service is MixerService)
+                {
+                    return service as MixerService;
+                }
+            }
+            return null;
         }
     }
 }

@@ -8,23 +8,26 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using StreamCore;
+using StreamCore.Interfaces;
 using StreamCore.Models.Twitch;
+using StreamCore.Services;
 
 namespace StreamCoreTester
 {
     public partial class Form1 : Form
     {
+        private StreamingService streamingService;
         public Form1()
         {
             InitializeComponent();
 
 
             var streamCore = StreamCoreInstance.Create();
-            var streamServiceProvider = streamCore.RunTwitchServices();
-            streamServiceProvider.OnMessageReceived += StreamServiceProvider_OnMessageReceived;
-            streamServiceProvider.OnJoinChannel += StreamServiceProvider_OnChannelJoined;
-            streamServiceProvider.OnLeaveChannel += StreamServiceProvider_OnLeaveChannel;
-            streamServiceProvider.OnChannelStateUpdated += StreamServiceProvider_OnChannelStateUpdated;
+            streamingService = streamCore.RunAllServices();
+            streamingService.OnMessageReceived += StreamServiceProvider_OnMessageReceived;
+            streamingService.OnJoinRoom += StreamServiceProvider_OnChannelJoined;
+            streamingService.OnLeaveRoom += StreamServiceProvider_OnLeaveChannel;
+            streamingService.OnRoomStateUpdated += StreamServiceProvider_OnChannelStateUpdated;
             //Console.WriteLine($"StreamService is of type {streamServiceProvider.ServiceType.Name}");
         }
 
@@ -58,6 +61,16 @@ namespace StreamCoreTester
             //{
             //    Console.WriteLine($"{meta.Key}: {meta.Value}");
             //}
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            streamingService.GetTwitchService().PartChannel("brian91292");
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            streamingService.GetTwitchService().JoinChannel("brian91292");
         }
     }
 }

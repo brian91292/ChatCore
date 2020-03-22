@@ -7,13 +7,13 @@ using System.Text;
 
 namespace StreamCore.Services
 {
-    public class StreamServiceProvider : IStreamingServiceManager, IDisposable
+    public class StreamingServiceManager : IStreamingServiceManager, IDisposable
     {
         public bool IsRunning { get; set; } = false;
 
         public event Action<IChatMessage> OnMessageReceived;
 
-        public StreamServiceProvider(ILogger<StreamServiceProvider> logger, IStreamingService streamingService, IList<IStreamingServiceManager> streamServiceProviders)
+        public StreamingServiceManager(ILogger<StreamingServiceManager> logger, IStreamingService streamingService, IList<IStreamingServiceManager> streamServiceProviders)
         {
             _logger = logger;
             _streamingService = streamingService;

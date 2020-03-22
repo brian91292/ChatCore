@@ -52,8 +52,8 @@ namespace StreamCore
                             )
                         )
                         .AddSingleton<IStreamingServiceManager>(x =>
-                            new StreamServiceProvider(
-                                x.GetService<ILogger<StreamServiceProvider>>(),
+                            new StreamingServiceManager(
+                                x.GetService<ILogger<StreamingServiceManager>>(),
                                 x.GetService<IStreamingService>(),
                                 new List<IStreamingServiceManager>
                                 {
@@ -71,7 +71,7 @@ namespace StreamCore
         }
 
         private object _runLock = new object();
-        public IStreamingService RunAllServices()
+        public StreamingService RunAllServices()
         {
             lock (_runLock)
             {
@@ -81,7 +81,7 @@ namespace StreamCore
                 }
                 var services = _serviceProvider.GetService<IStreamingServiceManager>();
                 services.Start();
-                return services.GetService();
+                return services.GetService() as StreamingService;
             }
         }
 

@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>StreamCore</name>
+    </assembly>
+    <members>
+        <member name="P:StreamCore.Models.Twitch.TwitchMessage.Message">
+            <summary>
+            The actual message, if one exists for the current message Type.
+            </summary>
+        </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchMessage.Type">
+            <summary>
+            The IRC message type for this TwitchMessage
+            </summary>
+        </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchMessage.Sender">
+            <summary>
+            A reference to the TwitchUser that send this message
+            </summary>
+        </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchMessage.Channel">
+            <summary>
+            A reference to the TwitchChannel that this message was received in
+            </summary>
+        </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchMessage.Metadata">
+            <summary>
+            Any metadata fields associated with the current TwitchMessage, such as user color, channel info, etc.
+            </summary>
+        </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchRoomstate.SlowModeInterval">
+            <summary>
+            The number of seconds a chatter without moderator privileges must wait between sending messages
+            </summary>
+        </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchRoomstate.MinFollowTime">
+            <summary>
+            If FollowersOnly is true, this specifies the number of minutes a user must be following before they can chat.
+            </summary>
+        </member>
+        <member name="M:StreamCore.Services.Twitch.TwitchMessageParser.ParseRawMessage(System.String,StreamCore.Interfaces.IChatMessage[]@)">
+            <summary>
+            Takes a raw Twitch message and parses it into an IChatMessage
+            </summary>
+            <param name="rawMessage">The raw message sent from Twitch</param>
+            <param name="parsedMessages">A list of chat messages that were parsed from the rawMessage</param>
+            <returns>True if parsedMessages.Count > 0</returns>
+        </member>
+        <member name="M:StreamCore.Services.Twitch.TwitchService.SendRawMessage(System.String,System.Boolean)">
+            <summary>
+            Sends a raw message to the Twitch server
+            </summary>
+            <param name="rawMessage">The raw message to send.</param>
+            <param name="forwardToSharedClients">
+            Whether or not the message should also be sent to other clients in the assembly that implement StreamCore, or only to the Twitch server.<br/>
+            This should only be set to true if the Twitch server would rebroadcast this message to other external clients as a response to the message.
+            </param>
+        </member>
+    </members>
+</doc>

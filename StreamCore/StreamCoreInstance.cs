@@ -85,7 +85,7 @@ namespace StreamCore
             }
         }
 
-        public TwitchServiceManager RunTwitchServices()
+        public TwitchService RunTwitchServices()
         {
             lock (_runLock)
             {
@@ -95,11 +95,11 @@ namespace StreamCore
                 }
                 var twitch = _serviceProvider.GetService<TwitchServiceManager>();
                 twitch.Start();
-                return twitch;
+                return twitch.GetService() as TwitchService;
             }
         }
 
-        public MixerServiceManager RunMixerServices()
+        public MixerService RunMixerServices()
         {
             lock (_runLock)
             {
@@ -109,7 +109,7 @@ namespace StreamCore
                 }
                 var mixer = _serviceProvider.GetService<MixerServiceManager>();
                 mixer.Start();
-                return mixer;
+                return mixer.GetService() as MixerService;
             }
         }
     }

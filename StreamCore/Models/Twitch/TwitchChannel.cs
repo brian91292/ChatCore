@@ -5,8 +5,10 @@ using System.Text;
 
 namespace StreamCore.Models.Twitch
 {
-    internal class TwitchChannel : IChatChannel
+    public class TwitchChannel : IChatChannel
     {
         public string Id { get; internal set; }
+
+        public TwitchRoomstate Roomstate { get; internal set; }
     }
 }

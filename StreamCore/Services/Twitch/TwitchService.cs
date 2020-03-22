@@ -1,18 +1,21 @@
 ﻿using Microsoft.Extensions.Logging;
 using StreamCore.Interfaces;
 using StreamCore.Models.Twitch;
+using StreamCore.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace StreamCore.Services.Twitch
 {
     public class TwitchService : StreamingServiceBase, IStreamingService
     {
-        public Type ServiceType => typeof(TwitchService);
+        private ConcurrentDictionary<string, TwitchChannel> _channels = new ConcurrentDictionary<string, TwitchChannel>();
 
         public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, IWebSocketService websocketService, Random rand)
         {
@@ -42,28 +45,57 @@ namespace StreamCore.Services.Twitch
 
         private void _websocketService_OnMessageReceived(Assembly assembly, string message)
         {
+           
             if (_messageParser.ParseRawMessage(message, out var parsedMessages))
             {
                 foreach (TwitchMessage twitchMessage in parsedMessages)
                 {
+                    var twitchChannel = (twitchMessage.Channel as TwitchChannel);
+                    if (twitchChannel.Roomstate == null)
+                    {
+                        twitchChannel.Roomstate = _channels.TryGetValue(twitchMessage.Channel.Id, out var channel) ? (channel as TwitchChannel).Roomstate : new TwitchRoomstate();
+                    }
                     switch (twitchMessage.Type)
                     {
+                        case "MODE":
+                        case "NAMES":
+                        case "CLEARCHAT":
+                        case "CLEARMSG":
+                        case "HOSTTARGET":
+                        case "RECONNECT":
+                        case "USERNOTICE":
+                        case "USERSTATE":
+                        case "GLOBALUSERSTATE":
+                            break;
+                        case "NOTICE":
+                            _onMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
+                            continue;
                         case "PING":
                             SendRawMessage("PONG :tmi.twitch.tv");
-                            _logger.LogInformation("Pong!");
                             continue;
                         case "001":  // successful login
                             JoinChannel("brian91292"); // TODO: allow user to set channel somehow
                             continue;
                         case "PRIVMSG":
-                            foreach (var kvp in _onMessageReceivedCallbacks)
+                            _onMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
+                            continue;
+                        case "JOIN":
+                            if(!_channels.ContainsKey(twitchMessage.Channel.Id))
                             {
-                                if (kvp.Key == assembly)
-                                {
-                                    continue;
-                                }
-                                kvp.Value?.Invoke(twitchMessage);
+                                _channels[twitchMessage.Channel.Id] = (TwitchChannel)twitchMessage.Channel;
+                                _logger.LogInformation($"Added channel {twitchMessage.Channel.Id} to the channel list.");
                             }
+                            _onJoinChannelCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                            continue;
+                        case "PART":
+                            if(_channels.TryRemove(twitchMessage.Channel.Id, out var channel))
+                            {
+                                _logger.LogInformation($"Removed channel {channel.Id} from the channel list.");
+                            }
+                            continue;
+                        case "ROOMSTATE":
+                            _channels[twitchMessage.Channel.Id] = (TwitchChannel)twitchMessage.Channel;
+                            _onChannelStateUpdatedCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
                             continue;
                     }
                 }
@@ -99,7 +131,7 @@ namespace StreamCore.Services.Twitch
         /// </summary>
         /// <param name="rawMessage">The raw message to send.</param>
         /// <param name="forwardToSharedClients">
-        /// Whether or not the message should also be sent to other clients in the assembly that implement StreamCore, or just directly to the Twitch server.<br/>
+        /// Whether or not the message should also be sent to other clients in the assembly that implement StreamCore, or only to the Twitch server.<br/>
         /// This should only be set to true if the Twitch server would rebroadcast this message to other external clients as a response to the message.
         /// </param>
         public void SendRawMessage(string rawMessage, bool forwardToSharedClients = false)
@@ -119,7 +151,7 @@ namespace StreamCore.Services.Twitch
 
         public void JoinChannel(string channel)
         {
-            SendRawMessage(Assembly.GetCallingAssembly(), $"JOIN #{channel}");
+            SendRawMessage(Assembly.GetCallingAssembly(), $"JOIN #{channel.ToLower()}");
         }
     }
 }

@@ -9,9 +9,6 @@ namespace StreamCore.Services.Twitch
 {
     public class TwitchServiceManager : IStreamingServiceManager, IDisposable
     {
-
-        public event Action<IChatMessage> OnMessageReceived;
-
         public bool IsRunning { get; private set; } = false;
 
         public TwitchServiceManager(ILogger<TwitchServiceManager> logger, TwitchService twitchService)

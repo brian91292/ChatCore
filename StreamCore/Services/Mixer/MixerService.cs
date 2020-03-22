@@ -10,8 +10,6 @@ namespace StreamCore.Services.Mixer
 {
     public class MixerService : StreamingServiceBase, IStreamingService
     {
-        public Type ServiceType => typeof(MixerService);
-
         public MixerService(ILogger<MixerService> logger)
         {
             _logger = logger;

@@ -1,15 +1,16 @@
 ﻿using Microsoft.Extensions.Logging;
 using StreamCore.Interfaces;
+using StreamCore.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Reflection;
 using System.Text;
 
 namespace StreamCore.Services
 {
     public class StreamingService : StreamingServiceBase, IStreamingService
     { 
-        public Type ServiceType => typeof(StreamingService);
-
         public StreamingService(ILogger<StreamingService> logger, IList<IStreamingService> streamingServices)
         {
             _logger = logger;
@@ -17,26 +18,33 @@ namespace StreamCore.Services
             foreach (var service in _streamingServices)
             {
                 service.OnMessageReceived += HandleMessageReceived;
+                service.OnJoinChannel += HandleOnJoinChannel;
+                service.OnChannelStateUpdated += HandleChannelStateUpdated;
+                service.OnLeaveChannel += HandleOnLeaveChannel;
             }
         }
 
         private ILogger _logger;
         private IList<IStreamingService> _streamingServices;
 
+        private void HandleOnLeaveChannel(IChatChannel channel)
+        {
+            _onLeaveChannelCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+        }
+
+        private void HandleChannelStateUpdated(IChatChannel channel)
+        {
+            _onChannelStateUpdatedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+        }
+
         private void HandleMessageReceived(IChatMessage message)
         {
-            //_logger.LogDebug($"Message received from {message.Author}. Message: {message.Message}");
-            foreach(var callback in _onMessageReceivedCallbacks.Values)
-            {
-                try
-                {
-                    callback?.Invoke(message);
-                }
-                catch(Exception ex)
-                {
-                    _logger.LogError(ex, "An exception occurred in HandleMessageReceived");
-                }
-            }
+            _onMessageReceivedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), message, _logger);
+        }
+
+        private void HandleOnJoinChannel(IChatChannel channel)
+        {
+            _onJoinChannelCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
         }
 
         public void SendTextMessage(string message, string channel)
@@ -44,22 +52,6 @@ namespace StreamCore.Services
             foreach(var service in _streamingServices)
             {
                 service.SendTextMessage(message, channel);
-            }
-        }
-
-        public void SendCommand(string command, string channel)
-        {
-            foreach(var service in _streamingServices)
-            {
-                service.SendCommand(command, channel);
-            }
-        }
-
-        public void JoinChannel(string channel)
-        {
-            foreach (var service in _streamingServices)
-            {
-                service.JoinChannel(channel);
             }
         }
     }

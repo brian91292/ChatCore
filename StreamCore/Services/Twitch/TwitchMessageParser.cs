@@ -51,19 +51,43 @@ namespace StreamCore.Services.Twitch
 
                 string messageType = match.Groups["MessageType"].Value;
                 var messageMeta = new ReadOnlyDictionary<string, string>(_tagRegex.Matches(rawMessage).Cast<Match>().Aggregate(new Dictionary<string, string>(), (dict, m) => { dict[m.Groups["Tag"].Value] = m.Groups["Value"].Value; return dict; }));
+                //IChatBadge[] userBadges = messageMeta.TryGetValue("badges", out var badgeStr) ? _badgeRegex.Matches(badgeStr).Cast<Match>().Aggregate(new List<IChatBadge>(), (list, m) => { list.Add(new TwitchBadge() { Name = $"{m.Groups["BadgeName"].Value}{m.Groups["BadgeVersion"].Value}" }); return list; }).ToArray() : new IChatBadge[0];
+
+                IChatBadge[] userBadges = new IChatBadge[0];
+                if (messageMeta.TryGetValue("badges", out var badgeStr))
+                {
+                    userBadges = badgeStr.Split(',').Aggregate(new List<IChatBadge>(), (list, m) => { list.Add(new TwitchBadge() { Name = m.Replace("/", "") }); return list; }).ToArray();
+                }
+
+                TwitchRoomstate messageRoomstate = null;
+                if (messageType == "ROOMSTATE") 
+                {
+                    messageRoomstate = new TwitchRoomstate()
+                    {
+                        BroadcasterLang = messageMeta.TryGetValue("broadcaster-lang", out var lang) ? lang : "",
+                        RoomId = messageMeta.TryGetValue("room-id", out var roomId) ? roomId : "",
+                        EmoteOnly = messageMeta.TryGetValue("emote-only", out var emoteOnly) ? emoteOnly == "1" : false,
+                        FollowersOnly = messageMeta.TryGetValue("followers-only", out var followersOnly) ? followersOnly != "-1" : false,
+                        MinFollowTime = followersOnly != "-1" && int.TryParse(followersOnly, out var minFollowTime) ? minFollowTime : 0,
+                        R9K = messageMeta.TryGetValue("r9k", out var r9k) ? r9k == "1" : false,
+                        SlowModeInterval = messageMeta.TryGetValue("slow", out var slow) && int.TryParse(slow, out var slowModeInterval) ? slowModeInterval : 0,
+                        SubscribersOnly = messageMeta.TryGetValue("subs-only", out var subsOnly) ? subsOnly == "1" : false
+                    };
+                }
 
                 var newMessage = new TwitchMessage()
                 {
                     Sender = new TwitchUser()
                     {
                         Id = messageMeta.TryGetValue("user-id", out var uid) ? uid : "",
-                        Name = messageMeta.TryGetValue("display-name", out var name) ? name : "",
+                        Name = messageMeta.TryGetValue("display-name", out var name) ? name : match.Groups["HostName"].Success ? match.Groups["HostName"].Value.Split('!')[0] : "",
                         Color = messageMeta.TryGetValue("color", out var color) ? color : "", // TODO: generate random color if one doesn't exist
-                        //Badges = messageMeta.TryGetValue("badges", out var badges) ? badges : "" // TODO: implement badges
+                        Badges = userBadges // TODO: Implement badge sizes/uri
                     },
                     Channel = new TwitchChannel()
                     {
-                        Id = match.Groups["ChannelName"].Success ? match.Groups["ChannelName"].Value : ""
+                        Id = match.Groups["ChannelName"].Success ? match.Groups["ChannelName"].Value : "",
+                        Roomstate = messageRoomstate
                     },
                     Message = match.Groups["Message"].Success ? match.Groups["Message"].Value : "",
                     Metadata = messageMeta,

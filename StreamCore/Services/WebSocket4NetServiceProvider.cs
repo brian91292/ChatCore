@@ -13,7 +13,8 @@ namespace StreamCore.Services
 {
     public class WebSocket4NetServiceProvider : IWebSocketService
     {
-        public bool IsConnected => !(_client is null) && DateTime.UtcNow.Subtract(_client.LastActiveTime.ToUniversalTime()).TotalMinutes > 2;
+        private bool _isConnected = false;
+        public bool IsConnected => !(_client is null) && _isConnected;
         public bool AutoReconnect { get; set; } = true;
         public event Action OnOpen;
         public event Action OnClose;
@@ -30,6 +31,7 @@ namespace StreamCore.Services
         private CancellationTokenSource _cancellationToken;
         private WebSocket _client;
         private string _uri = "";
+        private DateTime _startTime;
 
         public void Connect(string uri)
         {
@@ -50,7 +52,12 @@ namespace StreamCore.Services
                             _client.Error += _client_Error;
                             _client.MessageReceived += _client_MessageReceived;
                             await _client.OpenAsync();
-                            _reconnectDelay = 1000;
+                            _startTime = DateTime.UtcNow;
+                            if (_client.Handshaked)
+                            {
+                                _reconnectDelay = 500;
+                                _isConnected = true;
+                            }
                         }
                         catch (TaskCanceledException)
                         {
@@ -83,6 +90,7 @@ namespace StreamCore.Services
         {
             _logger.LogError(e.Exception, $"An error occurred in WebSocket while connected to {_uri}");
             OnError?.Invoke();
+            _isConnected = false;
             TryHandleReconnect();
         }
 
@@ -91,13 +99,15 @@ namespace StreamCore.Services
         {
             _logger.LogDebug($"WebSocket connection to {_uri} was closed");
             OnClose?.Invoke();
+            _isConnected = false;
             TryHandleReconnect();
         }
 
-        private int _reconnectDelay = 1000;
+        private int _reconnectDelay = 500;
         private SemaphoreSlim _reconnectLock = new SemaphoreSlim(1, 1);
         private async void TryHandleReconnect()
         {
+            _logger.LogInformation($"Connection was closed after {(DateTime.UtcNow - _startTime).TotalHours} hours.");
             if(!_reconnectLock.Wait(0))
             {
                 //_logger.LogInformation("Not trying to reconnect, connectLock already locked.");
@@ -112,9 +122,9 @@ namespace StreamCore.Services
                     await Task.Delay(_reconnectDelay, _cancellationToken.Token);
                     Connect(_uri);
                     _reconnectDelay *= 2;
-                    if (_reconnectDelay > 120000)
+                    if (_reconnectDelay > 60000)
                     {
-                        _reconnectDelay = 120000;
+                        _reconnectDelay = 60000;
                     }
                 }
                 catch (TaskCanceledException) { }

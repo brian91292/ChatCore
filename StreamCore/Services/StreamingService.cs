@@ -19,7 +19,7 @@ namespace StreamCore.Services
             _streamingServices = streamingServices;
             foreach (var service in _streamingServices)
             {
-                service.OnMessageReceived += HandleMessageReceived;
+                service.OnMessageReceived += HandleOnTextMessageReceived;
                 service.OnJoinRoom += HandleOnJoinRoom;
                 service.OnRoomStateUpdated += HandleOnRoomStateUpdated;
                 service.OnLeaveRoom += HandleOnLeaveRoom;
@@ -39,9 +39,9 @@ namespace StreamCore.Services
             _onRoomStateUpdatedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
         }
 
-        private void HandleMessageReceived(IChatMessage message)
+        private void HandleOnTextMessageReceived(IChatMessage message)
         {
-            _onMessageReceivedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), message, _logger);
+            _onTextMessageReceivedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), message, _logger);
         }
 
         private void HandleOnJoinRoom(IChatChannel channel)

@@ -78,7 +78,7 @@ namespace StreamCore.Services.Twitch
                             continue;
                         case "NOTICE":
                         case "PRIVMSG":
-                            _onMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
+                            _onTextMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
                             continue;
                         case "JOIN":
                             if(twitchMessage.Sender.Name == _username)

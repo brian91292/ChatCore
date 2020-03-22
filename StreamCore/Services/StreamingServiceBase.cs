@@ -10,11 +10,11 @@ namespace StreamCore.Services
 {
     public class StreamingServiceBase
     {
-        protected ConcurrentDictionary<Assembly, Action<IChatMessage>> _onMessageReceivedCallbacks = new ConcurrentDictionary<Assembly, Action<IChatMessage>>();
+        protected ConcurrentDictionary<Assembly, Action<IChatMessage>> _onTextMessageReceivedCallbacks = new ConcurrentDictionary<Assembly, Action<IChatMessage>>();
         public event Action<IChatMessage> OnMessageReceived
         {
-            add => _onMessageReceivedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
-            remove => _onMessageReceivedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
+            add => _onTextMessageReceivedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
+            remove => _onTextMessageReceivedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
         protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onJoinRoomCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();

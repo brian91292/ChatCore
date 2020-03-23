@@ -2,23 +2,30 @@
 using Microsoft.Extensions.Logging;
 using StreamCore.Exceptions;
 using StreamCore.Interfaces;
+using StreamCore.Models;
 using StreamCore.Services;
 using StreamCore.Services.Mixer;
 using StreamCore.Services.Twitch;
+using StreamCore.Utilities;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StreamCore
 {
-    
     public class StreamCoreInstance
     {
         private static object _createLock = new object();
         private static StreamCoreInstance _instance = null;
         private static ServiceProvider _serviceProvider;
+        private static IWebLoginProvider _webLoginProvider;
 
         StreamCoreInstance() { }
 
@@ -62,12 +69,21 @@ namespace StreamCore
                                 }
                             )
                         )
+                        .AddSingleton<IUserAuthManager, UserAuthManager>()
+                        .AddSingleton<IWebLoginProvider, WebLoginProvider>()
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
                     _serviceProvider.GetService<IStreamingServiceManager>();
+                    _webLoginProvider = _serviceProvider.GetService<IWebLoginProvider>();
+                    _webLoginProvider.Start();
                 }
                 return _instance;
             }
+        }
+
+        private static void _webLoginProvider_OnLoginDataUpdated(Models.LoginCredentials obj)
+        {
+            Console.WriteLine($"Twitch_OAuthToken: {obj.Twitch_OAuthToken}");
         }
 
         private object _runLock = new object();

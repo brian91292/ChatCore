@@ -28,25 +28,38 @@ namespace StreamCore.Services
 
         private ILogger _logger;
         private IList<IStreamingService> _streamingServices;
+        private object _invokeLock = new object();
 
         private void HandleOnLeaveRoom(IChatChannel channel)
         {
-            _onLeaveRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            lock (_invokeLock)
+            {
+                _onLeaveRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            }
         }
 
         private void HandleOnRoomStateUpdated(IChatChannel channel)
         {
-            _onRoomStateUpdatedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            lock (_invokeLock)
+            {
+                _onRoomStateUpdatedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            }
         }
 
         private void HandleOnTextMessageReceived(IChatMessage message)
         {
-            _onTextMessageReceivedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), message, _logger);
+            lock (_invokeLock)
+            {
+                _onTextMessageReceivedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), message, _logger);
+            }
         }
 
         private void HandleOnJoinRoom(IChatChannel channel)
         {
-            _onJoinRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            lock (_invokeLock)
+            {
+                _onJoinRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+            }
         }
 
         public void SendTextMessage(string message, string channel)

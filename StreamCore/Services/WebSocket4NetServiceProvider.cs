@@ -16,6 +16,7 @@ namespace StreamCore.Services
         private bool _isConnected = false;
         public bool IsConnected => !(_client is null) && _isConnected;
         public bool AutoReconnect { get; set; } = true;
+        public int ReconnectDelay { get; set; } = 500;
         public event Action OnOpen;
         public event Action OnClose;
         public event Action OnError;
@@ -51,11 +52,10 @@ namespace StreamCore.Services
                             _client.Closed += _client_Closed;
                             _client.Error += _client_Error;
                             _client.MessageReceived += _client_MessageReceived;
-                            await _client.OpenAsync();
                             _startTime = DateTime.UtcNow;
+                            await _client.OpenAsync();
                             if (_client.Handshaked)
                             {
-                                _reconnectDelay = 500;
                                 _isConnected = true;
                             }
                         }
@@ -103,28 +103,27 @@ namespace StreamCore.Services
             TryHandleReconnect();
         }
 
-        private int _reconnectDelay = 500;
         private SemaphoreSlim _reconnectLock = new SemaphoreSlim(1, 1);
         private async void TryHandleReconnect()
         {
-            _logger.LogInformation($"Connection was closed after {(DateTime.UtcNow - _startTime).TotalHours} hours.");
+            _logger.LogInformation($"Connection was closed after {(DateTime.UtcNow - _startTime).ToShortString()}.");
             if(!_reconnectLock.Wait(0))
             {
                 //_logger.LogInformation("Not trying to reconnect, connectLock already locked.");
                 return;
             }
+            _client = null;
             if (AutoReconnect && !_cancellationToken.IsCancellationRequested)
             {
-                _logger.LogInformation($"Trying to reconnect to {_uri} in {(int)TimeSpan.FromMilliseconds(_reconnectDelay).TotalSeconds} sec");
-                _client = null;
+                _logger.LogInformation($"Trying to reconnect to {_uri} in {(int)TimeSpan.FromMilliseconds(ReconnectDelay).TotalSeconds} sec");
                 try
                 {
-                    await Task.Delay(_reconnectDelay, _cancellationToken.Token);
+                    await Task.Delay(ReconnectDelay, _cancellationToken.Token);
                     Connect(_uri);
-                    _reconnectDelay *= 2;
-                    if (_reconnectDelay > 60000)
+                    ReconnectDelay *= 2;
+                    if (ReconnectDelay > 60000)
                     {
-                        _reconnectDelay = 60000;
+                        ReconnectDelay = 60000;
                     }
                 }
                 catch (TaskCanceledException) { }

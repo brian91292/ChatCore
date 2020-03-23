@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using StreamCore.Interfaces;
+using StreamCore.Models;
 using StreamCore.Models.Twitch;
 using StreamCore.Utilities;
 using System;
@@ -16,32 +17,66 @@ namespace StreamCore.Services.Twitch
     public class TwitchService : StreamingServiceBase, IStreamingService
     {
         private ConcurrentDictionary<string, TwitchChannel> _channels = new ConcurrentDictionary<string, TwitchChannel>();
+        public ReadOnlyDictionary<string, TwitchChannel> Channels;
 
-        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, IWebSocketService websocketService, Random rand)
+        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthManager authManager, Random rand)
         {
             _logger = logger;
             _messageParser = messageParser;
             _websocketService = websocketService;
+            _webLoginProvider = webLoginProvider;
+            _authManager = authManager;
             _rand = rand;
-            _username = $"justinfan{_rand.Next(10000, 1000000)}".ToLower(); // TODO: implement way to enter credentials
+            Channels = new ReadOnlyDictionary<string, TwitchChannel>(_channels);
+
+            _authManager.OnCredentialsUpdated += _authManager_OnCredentialsUpdated;
+            _websocketService.OnOpen += _websocketService_OnOpen;
+            _websocketService.OnClose += _websocketService_OnClose;
+            _websocketService.OnError += _websocketService_OnError;
+            _websocketService.OnMessageReceived += _websocketService_OnMessageReceived;
+        }
+
+        private void _authManager_OnCredentialsUpdated(LoginCredentials credentials)
+        {
+            _logger.LogInformation($"Twitch_OAuthToken: {credentials.Twitch_OAuthToken}");
+            if (_isStarted)
+            {
+                if(_websocketService.IsConnected)
+                {
+                    _websocketService.Disconnect();
+                }
+                if (!_websocketService.IsConnected)
+                {
+                    Start();
+                }
+                else
+                {
+                    TryLogin();
+                }
+            }
         }
 
         private ILogger _logger;
         private IChatMessageParser _messageParser;
         private IWebSocketService _websocketService;
+        private IWebLoginProvider _webLoginProvider;
+        private IUserAuthManager _authManager;
         private Random _rand;
-        private string _username;
+        private bool _isStarted = false;
+
+        private string _loggedInUserName = "@";
+        private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? $"justinfan{_rand.Next(10000, 1000000)}".ToLower() : _loggedInUserName; }
+        private string _oAuthToken { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? "" : _authManager.Credentials.Twitch_OAuthToken; }
 
         internal void Start()
         {
-            _websocketService.OnOpen += _websocketService_OnOpen;
-            _websocketService.OnClose += _websocketService_OnClose;
-            _websocketService.OnMessageReceived += _websocketService_OnMessageReceived;
+            _isStarted = true;
             _websocketService.Connect("wss://irc-ws.chat.twitch.tv:443");
         }
 
         internal void Stop()
         {
+            _isStarted = false;
             _websocketService.Disconnect();
         }
 
@@ -59,6 +94,52 @@ namespace StreamCore.Services.Twitch
                     }
                     switch (twitchMessage.Type)
                     {
+                        case "PING":
+                            SendRawMessage("PONG :tmi.twitch.tv");
+                            continue;
+                        case "001":  // successful login
+                            _loggedInUserName = twitchMessage.Channel.Id;
+                            _logger.LogInformation($"Logged into Twitch as {_loggedInUserName}");
+                            JoinChannel("brian91292"); // TODO: allow user to set channel
+                            _websocketService.ReconnectDelay = 500;
+                            continue;
+                        case "NOTICE":
+                            switch(twitchMessage.Message)
+                            {
+                                case "Login authentication failed":
+                                case "Invalid NICK":
+                                    _websocketService.Disconnect();
+                                    break;
+                            }
+                            goto case "PRIVMSG";
+                        case "PRIVMSG":
+                            _onTextMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
+                            continue;
+                        case "JOIN":
+                            if(twitchMessage.Sender.Name == _userName)
+                            {
+                                if (!_channels.ContainsKey(twitchMessage.Channel.Id))
+                                {
+                                    _channels[twitchMessage.Channel.Id] = twitchMessage.Channel.AsTwitchChannel();
+                                    _logger.LogInformation($"Added channel {twitchMessage.Channel.Id} to the channel list.");
+                                    _onJoinRoomCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                                }
+                            }
+                            continue;
+                        case "PART":
+                            if (twitchMessage.Sender.Name == _userName)
+                            {
+                                if (_channels.TryRemove(twitchMessage.Channel.Id, out var channel))
+                                {
+                                    _logger.LogInformation($"Removed channel {channel.Id} from the channel list.");
+                                    _onLeaveRoomCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                                }
+                            }
+                            continue;
+                        case "ROOMSTATE":
+                            _channels[twitchMessage.Channel.Id] = twitchMessage.Channel.AsTwitchChannel();
+                            _onRoomStateUpdatedCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                            continue;
                         case "MODE":
                         case "NAMES":
                         case "CLEARCHAT":
@@ -70,41 +151,6 @@ namespace StreamCore.Services.Twitch
                         case "GLOBALUSERSTATE":
                             _logger.LogInformation($"No handler exists for type {twitchMessage.Type}");
                             continue;
-                        case "PING":
-                            SendRawMessage("PONG :tmi.twitch.tv");
-                            continue;
-                        case "001":  // successful login
-                            JoinChannel("brian91292"); // TODO: allow user to set channel somehow
-                            continue;
-                        case "NOTICE":
-                        case "PRIVMSG":
-                            _onTextMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
-                            continue;
-                        case "JOIN":
-                            if(twitchMessage.Sender.Name == _username)
-                            {
-                                if (!_channels.ContainsKey(twitchMessage.Channel.Id))
-                                {
-                                    _channels[twitchMessage.Channel.Id] = (TwitchChannel)twitchMessage.Channel;
-                                    _logger.LogInformation($"Added channel {twitchMessage.Channel.Id} to the channel list.");
-                                    _onJoinRoomCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
-                                }
-                            }
-                            continue;
-                        case "PART":
-                            if (twitchMessage.Sender.Name == _username)
-                            {
-                                if (_channels.TryRemove(twitchMessage.Channel.Id, out var channel))
-                                {
-                                    _logger.LogInformation($"Removed channel {channel.Id} from the channel list.");
-                                    _onLeaveRoomCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
-                                }
-                            }
-                            continue;
-                        case "ROOMSTATE":
-                            _channels[twitchMessage.Channel.Id] = (TwitchChannel)twitchMessage.Channel;
-                            _onRoomStateUpdatedCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
-                            continue;
                     }
                 }
             }
@@ -112,14 +158,31 @@ namespace StreamCore.Services.Twitch
 
         private void _websocketService_OnClose()
         {
+            _loggedInUserName = "@";
             _logger.LogInformation("Twitch connection closed");
+        }
+
+        private void _websocketService_OnError()
+        {
+            _loggedInUserName = "@";
+            _logger.LogError("An error occurred in Twitch connection");
         }
 
         private void _websocketService_OnOpen()
         {
             _logger.LogInformation("Twitch connection opened");
             _websocketService.SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
-            _websocketService.SendMessage($"NICK {_username}"); 
+            TryLogin();
+        }
+
+        private void TryLogin()
+        {
+            _logger.LogInformation("Trying to login!");
+            if (!string.IsNullOrEmpty(_oAuthToken))
+            {
+                _websocketService.SendMessage($"PASS {_oAuthToken}");
+            }
+            _websocketService.SendMessage($"NICK {_userName}");
         }
 
         private void SendRawMessage(Assembly assembly, string rawMessage, bool forwardToSharedClients = false)

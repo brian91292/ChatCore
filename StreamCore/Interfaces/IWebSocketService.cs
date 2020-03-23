@@ -9,6 +9,7 @@ namespace StreamCore.Interfaces
     {
         bool IsConnected { get; }
         bool AutoReconnect { get; set; }
+        int ReconnectDelay { get; set; }
 
         event Action OnOpen;
         event Action OnClose;

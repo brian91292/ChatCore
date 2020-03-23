@@ -13,20 +13,20 @@ namespace StreamCore.Services
 
         public event Action<IChatMessage> OnMessageReceived;
 
-        public StreamingServiceManager(ILogger<StreamingServiceManager> logger, IStreamingService streamingService, IList<IStreamingServiceManager> streamServiceProviders)
+        public StreamingServiceManager(ILogger<StreamingServiceManager> logger, IStreamingService streamingService, IList<IStreamingServiceManager> streamServiceManagers)
         {
             _logger = logger;
             _streamingService = streamingService;
-            _streamServiceProviders = streamServiceProviders;
+            _streamServiceManagers = streamServiceManagers;
         }
 
         private ILogger _logger;
-        private IList<IStreamingServiceManager> _streamServiceProviders;
+        private IList<IStreamingServiceManager> _streamServiceManagers;
         private IStreamingService _streamingService;
 
         public void Start()
         {
-            foreach (var service in _streamServiceProviders)
+            foreach (var service in _streamServiceManagers)
             {
                 service.Start();
             }
@@ -35,7 +35,7 @@ namespace StreamCore.Services
 
         public void Stop()
         {
-            foreach (var service in _streamServiceProviders)
+            foreach (var service in _streamServiceManagers)
             {
                 service.Stop();
             }
@@ -44,7 +44,7 @@ namespace StreamCore.Services
 
         public void Dispose()
         {
-            foreach(var service in _streamServiceProviders)
+            foreach(var service in _streamServiceManagers)
             {
                 service.Stop();
             }

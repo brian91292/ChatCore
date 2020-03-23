@@ -7,7 +7,7 @@ using System.Text;
 
 namespace StreamCore.Utilities
 {
-    public static class DictionaryExtensions
+    public static class DictionaryUtils
     {
         public static void AddAction<A>(this ConcurrentDictionary<Assembly, Action<A>> dict , Assembly assembly, Action<A> value)
         {

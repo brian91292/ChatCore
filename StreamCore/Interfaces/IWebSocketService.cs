@@ -16,7 +16,7 @@ namespace StreamCore.Interfaces
         event Action OnError;
         event Action<Assembly, string> OnMessageReceived;
 
-        void Connect(string uri);
+        void Connect(string uri, bool forceReconnect = false);
         void Disconnect();
         void SendMessage(string message);
     }

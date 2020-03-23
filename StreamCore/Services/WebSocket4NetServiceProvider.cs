@@ -34,10 +34,22 @@ namespace StreamCore.Services
         private string _uri = "";
         private DateTime _startTime;
 
-        public void Connect(string uri)
+        public void Connect(string uri, bool forceReconnect = false)
         {
             lock (_lock)
             {
+                if (forceReconnect && !(_client is null))
+                {
+                    _client.Close();
+                    _client.Dispose();
+                    _client = null;
+                    //if(!(_cancellationToken is null))
+                    //{
+                    //    _cancellationToken.Cancel();
+                    //    _cancellationToken = null;
+                    //}
+                }
+
                 if (_client is null)
                 {
                     _logger.LogDebug($"Connecting to {uri}");
@@ -94,7 +106,6 @@ namespace StreamCore.Services
             TryHandleReconnect();
         }
 
-
         private void _client_Closed(object sender, EventArgs e)
         {
             _logger.LogDebug($"WebSocket connection to {_uri} was closed");
@@ -112,6 +123,11 @@ namespace StreamCore.Services
                 //_logger.LogInformation("Not trying to reconnect, connectLock already locked.");
                 return;
             }
+            _client.Opened -= _client_Opened;
+            _client.Closed -= _client_Closed;
+            _client.Error -= _client_Error;
+            _client.MessageReceived -= _client_MessageReceived;
+            _client.Dispose();
             _client = null;
             if (AutoReconnect && !_cancellationToken.IsCancellationRequested)
             {
@@ -138,12 +154,7 @@ namespace StreamCore.Services
                 _logger.LogInformation("Disconnecting");
                 if (IsConnected)
                 {
-                    if (!(_client is null))
-                    {
-                        _client.Close();
-                        _client = null;
-                    }
-                    _cancellationToken.Cancel();
+                    _cancellationToken?.Cancel();
                 }
             }
         }

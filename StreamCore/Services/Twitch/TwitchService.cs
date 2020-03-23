@@ -42,11 +42,7 @@ namespace StreamCore.Services.Twitch
             _logger.LogInformation($"Twitch_OAuthToken: {credentials.Twitch_OAuthToken}");
             if (_isStarted)
             {
-                if(_websocketService.IsConnected)
-                {
-                    _websocketService.Disconnect();
-                }
-                Start();
+                Start(true);
             }
         }
 
@@ -63,10 +59,10 @@ namespace StreamCore.Services.Twitch
         private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? $"justinfan{_rand.Next(10000, 1000000)}".ToLower() : _loggedInUserName; }
         private string _oAuthToken { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? "" : _authManager.Credentials.Twitch_OAuthToken; }
 
-        internal void Start()
+        internal void Start(bool forceReconnect = false)
         {
             _isStarted = true;
-            _websocketService.Connect("wss://irc-ws.chat.twitch.tv:443");
+            _websocketService.Connect("wss://irc-ws.chat.twitch.tv:443", forceReconnect);
         }
 
         internal void Stop()

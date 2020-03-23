@@ -25,7 +25,6 @@ namespace StreamCore
         private static object _createLock = new object();
         private static StreamCoreInstance _instance = null;
         private static ServiceProvider _serviceProvider;
-        private static IWebLoginProvider _webLoginProvider;
 
         StreamCoreInstance() { }
 
@@ -69,13 +68,16 @@ namespace StreamCore
                                 }
                             )
                         )
+                        .AddSingleton<IPathProvider, PathProvider>()
+                        .AddSingleton<ISettingsProvider, MainSettingsProvider>()
                         .AddSingleton<IUserAuthManager, UserAuthManager>()
                         .AddSingleton<IWebLoginProvider, WebLoginProvider>()
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
-                    _serviceProvider.GetService<IStreamingServiceManager>();
-                    _webLoginProvider = _serviceProvider.GetService<IWebLoginProvider>();
-                    _webLoginProvider.Start();
+                    if (_serviceProvider.GetService<ISettingsProvider>().RunWebApp)
+                    {
+                        _serviceProvider.GetService<IWebLoginProvider>().Start();
+                    }
                 }
                 return _instance;
             }

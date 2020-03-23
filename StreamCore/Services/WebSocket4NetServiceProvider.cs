@@ -43,7 +43,7 @@ namespace StreamCore.Services
                     _logger.LogDebug($"Connecting to {uri}");
                     _uri = uri;
                     _cancellationToken = new CancellationTokenSource();
-                    Task.Run(async () => 
+                    Task.Run(async () =>
                     {
                         try
                         {
@@ -54,7 +54,7 @@ namespace StreamCore.Services
                             _client.MessageReceived += _client_MessageReceived;
                             _startTime = DateTime.UtcNow;
                             await _client.OpenAsync();
-                            if (_client.Handshaked)
+                            if (!(_client is null) && _client.Handshaked)
                             {
                                 _isConnected = true;
                             }
@@ -63,7 +63,7 @@ namespace StreamCore.Services
                         {
                             _logger.LogInformation("WebSocket client task was cancelled");
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             _logger.LogError(ex, $"An exception occurred in WebSocket while connecting to {_uri}");
                             OnError?.Invoke();
@@ -107,7 +107,7 @@ namespace StreamCore.Services
         private async void TryHandleReconnect()
         {
             _logger.LogInformation($"Connection was closed after {(DateTime.UtcNow - _startTime).ToShortString()}.");
-            if(!_reconnectLock.Wait(0))
+            if (!_reconnectLock.Wait(0))
             {
                 //_logger.LogInformation("Not trying to reconnect, connectLock already locked.");
                 return;
@@ -138,6 +138,11 @@ namespace StreamCore.Services
                 _logger.LogInformation("Disconnecting");
                 if (IsConnected)
                 {
+                    if (!(_client is null))
+                    {
+                        _client.Close();
+                        _client = null;
+                    }
                     _cancellationToken.Cancel();
                 }
             }

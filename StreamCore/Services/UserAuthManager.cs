@@ -28,14 +28,16 @@ namespace StreamCore.Services
             }
         }
 
-        public UserAuthManager(ILogger<UserAuthManager> logger)
+        public UserAuthManager(ILogger<UserAuthManager> logger, IPathProvider pathProvider)
         {
             _logger = logger;
-            _credentialsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ".streamcore", "auth.ini");
+            _pathProvider = pathProvider;
+            _credentialsPath = Path.Combine(_pathProvider.GetDataPath(), "auth.ini");
             ObjectSerializer.Load(_credentials, _credentialsPath);
         }
 
         private ILogger _logger;
+        private IPathProvider _pathProvider;
         private string _credentialsPath;
     }
 }

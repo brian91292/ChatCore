@@ -19,13 +19,14 @@ namespace StreamCore.Services.Twitch
         private ConcurrentDictionary<string, TwitchChannel> _channels = new ConcurrentDictionary<string, TwitchChannel>();
         public ReadOnlyDictionary<string, TwitchChannel> Channels;
 
-        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthManager authManager, Random rand)
+        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthManager authManager, ISettingsProvider settingsProvider, Random rand)
         {
             _logger = logger;
             _messageParser = messageParser;
             _websocketService = websocketService;
             _webLoginProvider = webLoginProvider;
             _authManager = authManager;
+            _settingsProvider = settingsProvider;
             _rand = rand;
             Channels = new ReadOnlyDictionary<string, TwitchChannel>(_channels);
 
@@ -45,14 +46,7 @@ namespace StreamCore.Services.Twitch
                 {
                     _websocketService.Disconnect();
                 }
-                if (!_websocketService.IsConnected)
-                {
-                    Start();
-                }
-                else
-                {
-                    TryLogin();
-                }
+                Start();
             }
         }
 
@@ -61,6 +55,7 @@ namespace StreamCore.Services.Twitch
         private IWebSocketService _websocketService;
         private IWebLoginProvider _webLoginProvider;
         private IUserAuthManager _authManager;
+        private ISettingsProvider _settingsProvider;
         private Random _rand;
         private bool _isStarted = false;
 

@@ -56,7 +56,8 @@ namespace StreamCore.Services.Twitch
         private bool _isStarted = false;
 
         private string _loggedInUserName = "@";
-        private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? $"justinfan{_rand.Next(10000, 1000000)}".ToLower() : _loggedInUserName; }
+        private string _anonUsername;
+        private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? _anonUsername : _loggedInUserName; }
         private string _oAuthToken { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? "" : _authManager.Credentials.Twitch_OAuthToken; }
 
         internal void Start(bool forceReconnect = false)
@@ -163,6 +164,7 @@ namespace StreamCore.Services.Twitch
         {
             _logger.LogInformation("Twitch connection opened");
             _websocketService.SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
+            _anonUsername = $"justinfan{_rand.Next(10000, 1000000)}".ToLower();
             TryLogin();
         }
 

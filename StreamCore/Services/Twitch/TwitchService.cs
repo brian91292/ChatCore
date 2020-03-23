@@ -91,7 +91,7 @@ namespace StreamCore.Services.Twitch
                         case "001":  // successful login
                             _loggedInUserName = twitchMessage.Channel.Id;
                             _logger.LogInformation($"Logged into Twitch as {_loggedInUserName}");
-                            JoinChannel("brian91292"); // TODO: allow user to set channel
+                            //JoinChannel("brian91292"); // TODO: allow user to set channel
                             _websocketService.ReconnectDelay = 500;
                             continue;
                         case "NOTICE":

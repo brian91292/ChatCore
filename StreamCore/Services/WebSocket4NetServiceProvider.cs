@@ -11,12 +11,13 @@ using WebSocket4Net;
 
 namespace StreamCore.Services
 {
-    public class WebSocket4NetServiceProvider : IWebSocketService
+    public class WebSocket4NetServiceProvider : IWebSocketService, IDisposable
     {
         private bool _isConnected = false;
         public bool IsConnected => !(_client is null) && _isConnected;
         public bool AutoReconnect { get; set; } = true;
         public int ReconnectDelay { get; set; } = 500;
+
         public event Action OnOpen;
         public event Action OnClose;
         public event Action OnError;
@@ -40,14 +41,10 @@ namespace StreamCore.Services
             {
                 if (forceReconnect && !(_client is null))
                 {
+                    _cancellationToken?.Cancel();
                     _client.Close();
                     _client.Dispose();
                     _client = null;
-                    //if(!(_cancellationToken is null))
-                    //{
-                    //    _cancellationToken.Cancel();
-                    //    _cancellationToken = null;
-                    //}
                 }
 
                 if (_client is null)
@@ -155,6 +152,9 @@ namespace StreamCore.Services
                 if (IsConnected)
                 {
                     _cancellationToken?.Cancel();
+                    _client.Close();
+                    _client.Dispose();
+                    _client = null;
                 }
             }
         }
@@ -169,6 +169,19 @@ namespace StreamCore.Services
             else
             {
                 _logger.LogInformation("WebSocket is not connected!");
+            }
+        }
+
+        public void Dispose()
+        {
+            if(!(_client is null))
+            {
+                if(IsConnected)
+                {
+                    _client.Close();
+                }
+                _client.Dispose();
+                _client = null;
             }
         }
     }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
 
-namespace StreamCore.Utilities
+namespace StreamCore
 {
     public static class ObjectUtils
     {

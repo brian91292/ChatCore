@@ -2,7 +2,7 @@
 using StreamCore.Interfaces;
 using StreamCore.Models;
 using StreamCore.Models.Twitch;
-using StreamCore.Utilities;
+using StreamCore;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -28,6 +28,7 @@ namespace StreamCore.Services.Twitch
             _authManager = authManager;
             _settingsProvider = settingsProvider;
             _rand = rand;
+
             Channels = new ReadOnlyDictionary<string, TwitchChannel>(_channels);
 
             _authManager.OnCredentialsUpdated += _authManager_OnCredentialsUpdated;
@@ -54,7 +55,6 @@ namespace StreamCore.Services.Twitch
         private ISettingsProvider _settingsProvider;
         private Random _rand;
         private bool _isStarted = false;
-
         private string _loggedInUserName = "@";
         private string _anonUsername;
         private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? _anonUsername : _loggedInUserName; }
@@ -89,7 +89,7 @@ namespace StreamCore.Services.Twitch
                         case "PING":
                             SendRawMessage("PONG :tmi.twitch.tv");
                             continue;
-                        case "001":  // successful login
+                        case "376":  // successful login
                             _loggedInUserName = twitchMessage.Channel.Id;
                             _logger.LogInformation($"Logged into Twitch as {_loggedInUserName}");
                             //JoinChannel("brian91292"); // TODO: allow user to set channel

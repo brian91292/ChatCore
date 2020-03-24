@@ -35,7 +35,7 @@ namespace StreamCoreTester
         private void StreamServiceProvider_OnChannelStateUpdated(StreamCore.Interfaces.IChatChannel channel)
         {
             Console.WriteLine($"Channel state updated for {channel.GetType().Name} {channel.Id}");
-            var twitchChannel = (TwitchChannel)channel;
+            var twitchChannel = channel.AsTwitchChannel();
             Console.WriteLine($"RoomId: {twitchChannel.Roomstate.RoomId}");
         }
 

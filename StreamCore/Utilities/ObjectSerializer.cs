@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace StreamCore.Utilities
+namespace StreamCore
 {
     public class ObjectSerializer
     {

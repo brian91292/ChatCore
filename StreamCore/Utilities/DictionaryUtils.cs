@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace StreamCore.Utilities
+namespace StreamCore
 {
     public static class DictionaryUtils
     {

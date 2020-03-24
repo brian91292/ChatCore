@@ -76,7 +76,7 @@ namespace StreamCore.Services
                                     }
                                     _authManager.Credentials = new LoginCredentials()
                                     {
-                                        Twitch_OAuthToken = twitchOauthToken.StartsWith("oauth:") ? twitchOauthToken : $"oauth:{twitchOauthToken}"
+                                        Twitch_OAuthToken =  twitchOauthToken.StartsWith("oauth:") ? twitchOauthToken : !string.IsNullOrEmpty(twitchOauthToken) ? $"oauth:{twitchOauthToken}" : ""
                                     };
                                 }
                                 catch (Exception ex)

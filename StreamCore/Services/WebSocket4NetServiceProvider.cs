@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using StreamCore.Interfaces;
-using StreamCore.Utilities;
+using StreamCore;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -39,12 +39,9 @@ namespace StreamCore.Services
         {
             lock (_lock)
             {
-                if (forceReconnect && !(_client is null))
+                if (forceReconnect)
                 {
-                    _cancellationToken?.Cancel();
-                    _client.Close();
-                    _client.Dispose();
-                    _client = null;
+                    Dispose();
                 }
 
                 if (_client is null)
@@ -149,13 +146,7 @@ namespace StreamCore.Services
             lock (_lock)
             {
                 _logger.LogInformation("Disconnecting");
-                if (IsConnected)
-                {
-                    _cancellationToken?.Cancel();
-                    _client.Close();
-                    _client.Dispose();
-                    _client = null;
-                }
+                Dispose();
             }
         }
 
@@ -178,6 +169,7 @@ namespace StreamCore.Services
             {
                 if(IsConnected)
                 {
+                    _cancellationToken?.Cancel();
                     _client.Close();
                 }
                 _client.Dispose();

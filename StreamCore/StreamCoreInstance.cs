@@ -6,7 +6,7 @@ using StreamCore.Models;
 using StreamCore.Services;
 using StreamCore.Services.Mixer;
 using StreamCore.Services.Twitch;
-using StreamCore.Utilities;
+using StreamCore;
 using System;
 using System.Collections.Generic;
 using System.IO;

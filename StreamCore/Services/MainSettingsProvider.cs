@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using StreamCore.Interfaces;
-using StreamCore.Utilities;
+using StreamCore;
 using System;
 using System.Collections.Generic;
 using System.IO;

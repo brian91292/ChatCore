@@ -2,7 +2,7 @@
 using StreamCore.Interfaces;
 using StreamCore.Services.Mixer;
 using StreamCore.Services.Twitch;
-using StreamCore.Utilities;
+using StreamCore;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

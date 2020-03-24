@@ -1,5 +1,5 @@
 ﻿using StreamCore.Interfaces;
-using StreamCore.Utilities;
+using StreamCore;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

@@ -41,7 +41,6 @@ namespace StreamCore
                         {
                             builder.AddConsole();
                         })
-                        .AddSingleton<Random>()
                         .AddSingleton<TwitchService>()
                         .AddSingleton<TwitchServiceManager>()
                         .AddSingleton<TwitchMessageParser>()
@@ -68,6 +67,7 @@ namespace StreamCore
                                 }
                             )
                         )
+                        .AddSingleton<Random>()
                         .AddSingleton<IPathProvider, PathProvider>()
                         .AddSingleton<ISettingsProvider, MainSettingsProvider>()
                         .AddSingleton<IUserAuthManager, UserAuthManager>()

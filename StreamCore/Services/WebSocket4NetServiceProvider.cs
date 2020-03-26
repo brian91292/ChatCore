@@ -13,8 +13,7 @@ namespace StreamCore.Services
 {
     public class WebSocket4NetServiceProvider : IWebSocketService, IDisposable
     {
-        private bool _isConnected = false;
-        public bool IsConnected => !(_client is null) && _isConnected;
+        public bool IsConnected => !(_client is null) && (_client.State == WebSocketState.Open || _client.State == WebSocketState.Connecting);
         public bool AutoReconnect { get; set; } = true;
         public int ReconnectDelay { get; set; } = 500;
 
@@ -60,10 +59,6 @@ namespace StreamCore.Services
                             _client.MessageReceived += _client_MessageReceived;
                             _startTime = DateTime.UtcNow;
                             await _client.OpenAsync();
-                            if (!(_client is null) && _client.Handshaked)
-                            {
-                                _isConnected = true;
-                            }
                         }
                         catch (TaskCanceledException)
                         {
@@ -96,7 +91,6 @@ namespace StreamCore.Services
         {
             _logger.LogError(e.Exception, $"An error occurred in WebSocket while connected to {_uri}");
             OnError?.Invoke();
-            _isConnected = false;
             TryHandleReconnect();
         }
 
@@ -104,7 +98,6 @@ namespace StreamCore.Services
         {
             _logger.LogDebug($"WebSocket connection to {_uri} was closed");
             OnClose?.Invoke();
-            _isConnected = false;
             TryHandleReconnect();
         }
 

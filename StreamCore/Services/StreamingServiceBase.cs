@@ -37,5 +37,12 @@ namespace StreamCore.Services
             add => _onRoomStateUpdatedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
             remove => _onRoomStateUpdatedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
+
+        protected ConcurrentDictionary<Assembly, Action<IStreamingService>> _onLoginCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService>>();
+        public event Action<IStreamingService> OnLogin
+        {
+            add => _onLoginCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
+            remove => _onLoginCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
+        }
     }
 }

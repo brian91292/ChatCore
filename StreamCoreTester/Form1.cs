@@ -12,12 +12,14 @@ using StreamCore;
 using StreamCore.Interfaces;
 using StreamCore.Models.Twitch;
 using StreamCore.Services;
+using StreamCore.Services.Twitch;
 
 namespace StreamCoreTester
 {
     public partial class Form1 : Form
     {
         private StreamingService streamingService;
+        private TwitchService twitchService;
         public Form1()
         {
             InitializeComponent();
@@ -25,6 +27,8 @@ namespace StreamCoreTester
 
             var streamCore = StreamCoreInstance.Create();
             streamingService = streamCore.RunAllServices();
+            twitchService = streamingService.GetTwitchService();
+            streamingService.OnLogin += StreamingService_OnLogin; 
             streamingService.OnMessageReceived += StreamServiceProvider_OnMessageReceived;
             streamingService.OnJoinRoom += StreamServiceProvider_OnChannelJoined;
             streamingService.OnLeaveRoom += StreamServiceProvider_OnLeaveChannel;
@@ -32,34 +36,41 @@ namespace StreamCoreTester
             //Console.WriteLine($"StreamService is of type {streamServiceProvider.ServiceType.Name}");
         }
 
-        private void StreamServiceProvider_OnChannelStateUpdated(StreamCore.Interfaces.IChatChannel channel)
+        private void StreamingService_OnLogin(IStreamingService streamingService)
+        {
+            if(streamingService is TwitchService twitchService)
+            {
+                twitchService.JoinChannel("xqcow");
+            }
+        }
+
+        private void StreamServiceProvider_OnChannelStateUpdated(IChatChannel channel)
         {
             Console.WriteLine($"Channel state updated for {channel.GetType().Name} {channel.Id}");
-            if (channel is TwitchChannel)
+            if (channel is TwitchChannel twitchChannel)
             {
-                var twitchChannel = channel.AsTwitchChannel();
                 Console.WriteLine($"RoomId: {twitchChannel.Roomstate.RoomId}");
             }
         }
 
-        private void StreamServiceProvider_OnLeaveChannel(StreamCore.Interfaces.IChatChannel channel)
+        private void StreamServiceProvider_OnLeaveChannel(IChatChannel channel)
         {
             Console.WriteLine($"Left channel {channel.Id}");
         }
 
-        private void StreamServiceProvider_OnChannelJoined(StreamCore.Interfaces.IChatChannel channel)
+        private void StreamServiceProvider_OnChannelJoined(IChatChannel channel)
         {
             Console.WriteLine($"Joined channel {channel.Id}");
         }
 
-        private void StreamServiceProvider_OnMessageReceived(StreamCore.Interfaces.IChatMessage msg)
+        private void StreamServiceProvider_OnMessageReceived(IChatMessage msg)
         {
             Console.WriteLine($"{msg.Sender.Name}: {msg.Message}");
             //Console.WriteLine("Badges: ");
-            foreach (var badge in msg.Sender.Badges)
-            {
-                Console.WriteLine($"Badge: {badge.Name}, URI: {badge.Uri}");
-            }
+            //foreach (var badge in msg.Sender.Badges)
+            //{
+            //    Console.WriteLine($"Badge: {badge.Name}, URI: {badge.Uri}");
+            //}
             //Console.WriteLine($"Metadata: ");
             //foreach (var meta in msg.Metadata)
             //{

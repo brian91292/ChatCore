@@ -17,6 +17,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace StreamCore
 {
@@ -41,9 +42,12 @@ namespace StreamCore
                         {
                             builder.AddConsole();
                         })
+                        .AddSingleton<Random>()
+                        .AddTransient<HttpClient>()
                         .AddSingleton<TwitchService>()
                         .AddSingleton<TwitchServiceManager>()
                         .AddSingleton<TwitchMessageParser>()
+                        .AddSingleton<TwitchDataProvider>()
                         .AddSingleton<MixerService>()
                         .AddSingleton<MixerServiceManager>()
                         .AddSingleton<IStreamingService>(x =>
@@ -67,7 +71,6 @@ namespace StreamCore
                                 }
                             )
                         )
-                        .AddSingleton<Random>()
                         .AddSingleton<IPathProvider, PathProvider>()
                         .AddSingleton<ISettingsProvider, MainSettingsProvider>()
                         .AddSingleton<IUserAuthManager, UserAuthManager>()

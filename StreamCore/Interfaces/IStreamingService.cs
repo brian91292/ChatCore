@@ -7,6 +7,7 @@ namespace StreamCore.Interfaces
 {
     public interface IStreamingService
     {
+        event Action<IStreamingService> OnLogin;
         event Action<IChatMessage> OnMessageReceived;
         event Action<IChatChannel> OnJoinRoom;
         event Action<IChatChannel> OnRoomStateUpdated;

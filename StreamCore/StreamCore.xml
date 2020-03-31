@@ -9,6 +9,11 @@
             The actual message, if one exists for the current message Type.
             </summary>
         </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchMessage.IsActionMessage">
+            <summary>
+            Whether or not the message is an action (/me) message
+            </summary>
+        </member>
         <member name="P:StreamCore.Models.Twitch.TwitchMessage.Type">
             <summary>
             The IRC message type for this TwitchMessage
@@ -22,6 +27,11 @@
         <member name="P:StreamCore.Models.Twitch.TwitchMessage.Channel">
             <summary>
             A reference to the TwitchChannel that this message was received in
+            </summary>
+        </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchMessage.Emotes">
+            <summary>
+            Info about any emotes that are in this message
             </summary>
         </member>
         <member name="P:StreamCore.Models.Twitch.TwitchMessage.Metadata">
@@ -39,7 +49,7 @@
             If FollowersOnly is true, this specifies the number of minutes a user must be following before they can chat.
             </summary>
         </member>
-        <member name="M:StreamCore.Services.Twitch.TwitchMessageParser.ParseRawMessage(System.String,StreamCore.Interfaces.IChatMessage[]@)">
+        <member name="M:StreamCore.Services.Twitch.TwitchMessageParser.ParseRawMessage(System.String,System.Collections.Concurrent.ConcurrentDictionary{System.String,StreamCore.Interfaces.IChatChannel},StreamCore.Interfaces.IChatMessage[]@)">
             <summary>
             Takes a raw Twitch message and parses it into an IChatMessage
             </summary>

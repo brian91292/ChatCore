@@ -9,6 +9,16 @@ namespace StreamCore
 {
     public static class DictionaryUtils
     {
+        public static void AddAction(this ConcurrentDictionary<Assembly, Action> dict, Assembly assembly, Action value)
+        {
+            if (!dict.TryGetValue(assembly, out var action))
+            {
+                action = new Action(value);
+                dict[assembly] = action;
+            }
+            action += value;
+        }
+
         public static void AddAction<A>(this ConcurrentDictionary<Assembly, Action<A>> dict , Assembly assembly, Action<A> value)
         {
             if (!dict.TryGetValue(assembly, out var action))
@@ -19,6 +29,15 @@ namespace StreamCore
             action += value;
         }
 
+        public static void RemoveAction(this ConcurrentDictionary<Assembly, Action> dict, Assembly assembly, Action value)
+        {
+            if (!dict.TryGetValue(assembly, out var action))
+            {
+                return;
+            }
+            action -= value;
+        }
+
         public static void RemoveAction<A>(this ConcurrentDictionary<Assembly, Action<A>> dict, Assembly assembly, Action<A> value)
         {
             if (!dict.TryGetValue(assembly, out var action))
@@ -26,6 +45,25 @@ namespace StreamCore
                 return;
             }
             action -= value;
+        }
+
+        public static void InvokeAll(this ConcurrentDictionary<Assembly, Action> dict, Assembly assembly, ILogger logger = null)
+        {
+            foreach (var kvp in dict)
+            {
+                if (kvp.Key == assembly)
+                {
+                    continue;
+                }
+                try
+                {
+                    kvp.Value?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogError(ex, $"An exception occurred while invoking action no params.");
+                }
+            }
         }
 
         public static void InvokeAll<A>(this ConcurrentDictionary<Assembly, Action<A>> dict, Assembly assembly, A data, ILogger logger = null)

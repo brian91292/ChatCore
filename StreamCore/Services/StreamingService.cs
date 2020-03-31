@@ -23,12 +23,21 @@ namespace StreamCore.Services
                 service.OnJoinRoom += HandleOnJoinRoom;
                 service.OnRoomStateUpdated += HandleOnRoomStateUpdated;
                 service.OnLeaveRoom += HandleOnLeaveRoom;
+                service.OnLogin += HandleOnLogin;
             }
         }
 
         private ILogger _logger;
         private IList<IStreamingService> _streamingServices;
         private object _invokeLock = new object();
+
+        private void HandleOnLogin(IStreamingService svc)
+        {
+            lock (_invokeLock)
+            {
+                _onLoginCallbacks.InvokeAll(Assembly.GetCallingAssembly(), svc, _logger);
+            }
+        }
 
         private void HandleOnLeaveRoom(IChatChannel channel)
         {

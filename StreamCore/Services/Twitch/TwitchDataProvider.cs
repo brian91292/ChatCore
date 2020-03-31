@@ -72,7 +72,7 @@ namespace StreamCore.Services.Twitch
                                         string badgeVersion = version.Key;
                                         string finalName = $"{badgeName}{badgeVersion}";
                                         string uri = version.Value.AsObject["image_url_4x"].Value;
-                                        //_logger.LogInformation($"Badge: {finalName}, URI: {uri}");
+                                        //_logger.LogInformation($"Global Badge: {finalName}, URI: {uri}");
                                         TwitchGlobalBadges.Add(finalName, uri);
                                     }
                                 }
@@ -182,7 +182,8 @@ namespace StreamCore.Services.Twitch
                                 var resp = await _httpClient.SendAsync(msg);
                                 if (!resp.IsSuccessStatusCode)
                                 {
-                                    _logger.LogError($"Failed to receive channel badge data. Status: {resp.StatusCode}, Error: {resp.Content.ReadAsStringAsync()}");
+                                    // TODO: figure out why this is failing sometimes
+                                    _logger.LogError($"Failed to receive channel badge data. Status: {resp.StatusCode}, RoomId: {channel.AsTwitchChannel().Roomstate.RoomId}, Error: {resp.Content.ReadAsStringAsync()}");
                                     goto BTTV;
                                 }
                                 JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
@@ -315,8 +316,11 @@ namespace StreamCore.Services.Twitch
         {
             lock (_lock)
             {
-                if (channel != null && TwitchChannelResources.ContainsKey(channel.Id))
+                if (channel != null && TwitchChannelResources.TryGetValue(channel.Id, out var channelResources))
                 {
+                    channelResources.BTTVEmotes.Clear();
+                    channelResources.FFZEmotes.Clear();
+                    channelResources.TwitchBadges.Clear();
                     TwitchChannelResources.Remove(channel.Id);
                 }
             }
@@ -336,7 +340,7 @@ namespace StreamCore.Services.Twitch
             {
                 badgeUri = globalBadgeId;
             }
-            return string.IsNullOrEmpty(badgeUri) ? "" : badgeUri;
+            return badgeUri;
         }
 
         //public async Task<bool> RequestDataForChannel(string channel, int roomId)

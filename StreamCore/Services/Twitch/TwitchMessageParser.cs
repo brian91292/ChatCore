@@ -55,11 +55,11 @@ namespace StreamCore.Services.Twitch
 
                 string messageType = match.Groups["MessageType"].Value;
                 string messageText = match.Groups["Message"].Success ? match.Groups["Message"].Value : "";
-                string messageChannelName = match.Groups["ChannelName"].Success ? match.Groups["ChannelName"].Value.Substring(1) : "";
+                string messageChannelName = match.Groups["ChannelName"].Success ? match.Groups["ChannelName"].Value.Trim(new char[] { '#' }) : "";
 
                 if(!channelInfo.TryGetValue(messageChannelName, out var channel))
                 {
-                    _logger.LogWarning($"Channel info has not been set yet for channel {messageChannelName}");
+                    //_logger.LogWarning($"Channel info has not been set yet for channel {messageChannelName}");
                 }
 
                 bool isActionMessage = false;
@@ -177,6 +177,10 @@ namespace StreamCore.Services.Twitch
                             SlowModeInterval = messageMeta.TryGetValue("slow", out var slow) && int.TryParse(slow, out var slowModeInterval) ? slowModeInterval : 0,
                             SubscribersOnly = messageMeta.TryGetValue("subs-only", out var subsOnly) ? subsOnly == "1" : false
                         };
+                        if (channel != null)
+                        {
+                            channel.AsTwitchChannel().Roomstate = messageRoomstate;
+                        }
                     }
 
                     var newMessage = new TwitchMessage()

@@ -137,8 +137,8 @@ namespace StreamCore.Services.Twitch
                                 }
                                 continue;
                             case "ROOMSTATE":
-                                _twitchDataProvider.TryRequestChannelResources(twitchMessage.Channel);
                                 _channels[twitchMessage.Channel.Id] = twitchMessage.Channel;
+                                _twitchDataProvider.TryRequestChannelResources(twitchMessage.Channel);
                                 _onRoomStateUpdatedCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
                                 continue;
                             case "MODE":

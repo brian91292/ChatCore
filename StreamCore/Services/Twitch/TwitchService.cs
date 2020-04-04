@@ -19,6 +19,8 @@ namespace StreamCore.Services.Twitch
         private ConcurrentDictionary<string, IChatChannel> _channels = new ConcurrentDictionary<string, IChatChannel>();
         public ReadOnlyDictionary<string, IChatChannel> Channels;
 
+        public TwitchUser LoggedInUser { get; internal set; } = null;
+
         public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, TwitchDataProvider twitchDataProvider, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthManager authManager, ISettingsProvider settingsProvider, Random rand)
         {
             _logger = logger;
@@ -57,10 +59,10 @@ namespace StreamCore.Services.Twitch
         private ISettingsProvider _settingsProvider;
         private Random _rand;
         private bool _isStarted = false;
-        private string _loggedInUserName = "@";
         private string _anonUsername;
         private object _messageReceivedLock = new object();
-        private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? _anonUsername : _loggedInUserName; }
+
+        private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? _anonUsername : "@"; }
         private string _oAuthToken { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? "" : _authManager.Credentials.Twitch_OAuthToken; }
 
         internal void Start(bool forceReconnect = false)
@@ -75,12 +77,12 @@ namespace StreamCore.Services.Twitch
             _websocketService.Disconnect();
         }
 
-        private void _websocketService_OnMessageReceived(Assembly assembly, string message)
+        private void _websocketService_OnMessageReceived(Assembly assembly, string rawMessage)
         {
             lock (_messageReceivedLock)
             {
                 //_logger.LogInformation("RawMessage: " + message);
-                if (_messageParser.ParseRawMessage(message, _channels, out var parsedMessages))
+                if (_messageParser.ParseRawMessage(rawMessage, _channels, out var parsedMessages))
                 {
                     foreach (TwitchMessage twitchMessage in parsedMessages)
                     {
@@ -96,9 +98,8 @@ namespace StreamCore.Services.Twitch
                                 continue;
                             case "376":  // successful login
                                 _twitchDataProvider.TryRequestGlobalResources();
-                                _loggedInUserName = twitchMessage.Channel.Id;
-                                _logger.LogInformation($"Logged into Twitch as {_loggedInUserName}");
-                                //JoinChannel("brian91292"); // TODO: allow user to set channel
+                                // This isn't a typo, when you first sign in your username is in the channel id.
+                                _logger.LogInformation($"Logged into Twitch as {twitchMessage.Channel.Id}");
                                 _websocketService.ReconnectDelay = 500;
                                 _onLoginCallbacks?.InvokeAll(assembly, this, _logger);
                                 continue;
@@ -111,8 +112,9 @@ namespace StreamCore.Services.Twitch
                                         break;
                                 }
                                 goto case "PRIVMSG";
+                            case "USERNOTICE":
                             case "PRIVMSG":
-                                _onTextMessageReceivedCallbacks.InvokeAll(assembly, twitchMessage, _logger);
+                                _onTextMessageReceivedCallbacks?.InvokeAll(assembly, twitchMessage, _logger);
                                 continue;
                             case "JOIN":
                                 if (twitchMessage.Sender.Name == _userName)
@@ -121,7 +123,7 @@ namespace StreamCore.Services.Twitch
                                     {
                                         _channels[twitchMessage.Channel.Id] = twitchMessage.Channel.AsTwitchChannel();
                                         _logger.LogInformation($"Added channel {twitchMessage.Channel.Id} to the channel list.");
-                                        _onJoinRoomCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                                        _onJoinRoomCallbacks?.InvokeAll(assembly, twitchMessage.Channel, _logger);
                                     }
                                 }
                                 continue;
@@ -132,25 +134,34 @@ namespace StreamCore.Services.Twitch
                                     {
                                         _twitchDataProvider.TryReleaseChannelResources(twitchMessage.Channel);
                                         _logger.LogInformation($"Removed channel {channel.Id} from the channel list.");
-                                        _onLeaveRoomCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                                        _onLeaveRoomCallbacks?.InvokeAll(assembly, twitchMessage.Channel, _logger);
                                     }
                                 }
                                 continue;
                             case "ROOMSTATE":
                                 _channels[twitchMessage.Channel.Id] = twitchMessage.Channel;
                                 _twitchDataProvider.TryRequestChannelResources(twitchMessage.Channel);
-                                _onRoomStateUpdatedCallbacks.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                                _onRoomStateUpdatedCallbacks?.InvokeAll(assembly, twitchMessage.Channel, _logger);
+                                continue;
+                            case "USERSTATE":
+                            case "GLOBALUSERSTATE":
+                                LoggedInUser = twitchMessage.Sender.AsTwitchUser();
+                                continue;
+                            case "CLEARCHAT":
+                                twitchMessage.Metadata.TryGetValue("target-user-id", out var targetUser);
+                                _onChatClearedCallbacks?.InvokeAll(assembly, targetUser, _logger);
+                                continue;
+                            case "CLEARMSG":
+                                if (twitchMessage.Metadata.TryGetValue("target-msg-id", out var targetMessage))
+                                {
+                                    _onMessageClearedCallbacks?.InvokeAll(assembly, targetMessage, _logger);
+                                }
                                 continue;
                             case "MODE":
                             case "NAMES":
-                            case "CLEARCHAT":
-                            case "CLEARMSG":
                             case "HOSTTARGET":
                             case "RECONNECT":
-                            case "USERNOTICE":
-                            case "USERSTATE":
-                            case "GLOBALUSERSTATE":
-                                _logger.LogInformation($"No handler exists for type {twitchMessage.Type}");
+                                _logger.LogInformation($"No handler exists for type {twitchMessage.Type}. {rawMessage}");
                                 continue;
                         }
                     }
@@ -160,13 +171,11 @@ namespace StreamCore.Services.Twitch
 
         private void _websocketService_OnClose()
         {
-            _loggedInUserName = "@";
             _logger.LogInformation("Twitch connection closed");
         }
 
         private void _websocketService_OnError()
         {
-            _loggedInUserName = "@";
             _logger.LogError("An error occurred in Twitch connection");
         }
 

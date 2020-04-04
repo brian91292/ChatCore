@@ -17,5 +17,20 @@ namespace StreamCore
         {
             return channel as TwitchChannel;
         }
+
+        public static TwitchUser AsTwitchUser(this IChatUser user)
+        {
+            return user as TwitchUser;
+        }
+
+        public static TwitchBadge AsTwitchBadge(this IChatBadge badge)
+        {
+            return badge as TwitchBadge;
+        }
+
+        public static TwitchEmote AsTwitchEmote(this IChatEmote emote)
+        {
+            return emote as TwitchEmote;
+        }
     }
 }

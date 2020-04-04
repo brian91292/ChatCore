@@ -57,26 +57,30 @@ namespace StreamCore.Services.Twitch
                 string messageText = match.Groups["Message"].Success ? match.Groups["Message"].Value : "";
                 string messageChannelName = match.Groups["ChannelName"].Success ? match.Groups["ChannelName"].Value.Trim(new char[] { '#' }) : "";
 
-                if(!channelInfo.TryGetValue(messageChannelName, out var channel))
+                if (!channelInfo.TryGetValue(messageChannelName, out var channel))
                 {
                     //_logger.LogWarning($"Channel info has not been set yet for channel {messageChannelName}");
                 }
 
-                bool isActionMessage = false;
-                if (messageText.StartsWith("\u0001ACTION"))
-                {
-                    messageText = messageText.Remove(messageText.Length - 1, 1).Remove(0, 8);
-                    isActionMessage = true;
-                }
-
                 try
                 {
-                    var messageMeta = new ReadOnlyDictionary<string, string>(_tagRegex.Matches(match.Value).Cast<Match>().Aggregate(new Dictionary<string, string>(), (dict, m) => { 
-                        dict[m.Groups["Tag"].Value] = m.Groups["Value"].Value; 
-                        return dict; 
+                    IChatBadge[] userBadges = new IChatBadge[0];
+                    List<IChatEmote> messageEmotes = new List<IChatEmote>();
+                    TwitchRoomstate messageRoomstate = null;
+
+                    bool isActionMessage = false;
+                    if (messageText.StartsWith("\u0001ACTION"))
+                    {
+                        messageText = messageText.Remove(messageText.Length - 1, 1).Remove(0, 8);
+                        isActionMessage = true;
+                    }
+
+                    var messageMeta = new ReadOnlyDictionary<string, string>(_tagRegex.Matches(match.Value).Cast<Match>().Aggregate(new Dictionary<string, string>(), (dict, m) =>
+                    {
+                        dict[m.Groups["Tag"].Value] = m.Groups["Value"].Value;
+                        return dict;
                     }));
 
-                    IChatBadge[] userBadges = new IChatBadge[0];
                     if (messageMeta.TryGetValue("badges", out var badgeStr))
                     {
                         userBadges = badgeStr.Split(',').Aggregate(new List<IChatBadge>(), (list, m) =>
@@ -92,39 +96,39 @@ namespace StreamCore.Services.Twitch
                         }).ToArray();
                     }
 
-                    List<IChatEmote> messageEmotes = new List<IChatEmote>();
-                    if (messageMeta.TryGetValue("emotes", out var emoteStr))
-                    {
-                        // Parse all the normal Twitch emotes
-                        messageEmotes = emoteStr.Split('/').Aggregate(new List<IChatEmote>(), (emoteList, emoteInstanceString) =>
-                        {
-                            var emoteParts = emoteInstanceString.Split(':');
-                            foreach (var instanceString in emoteParts[1].Split(','))
-                            {
-                                var instanceParts = instanceString.Split('-');
-                                int startIndex = int.Parse(instanceParts[0]);
-                                int endIndex = int.Parse(instanceParts[1]);
-
-                                if(startIndex >= messageText.Length)
-                                {
-                                    _logger.LogWarning($"Start index is greater than message length! RawMessage: {match.Value}, InstanceString: {instanceString}, EmoteStr: {emoteStr}, StartIndex: {startIndex}, MessageLength: {messageText.Length}, IsActionMessage: {isActionMessage}");
-                                }
-
-                                emoteList.Add(new TwitchEmote()
-                                {
-                                    Id = emoteParts[0],
-                                    Name =  endIndex >= messageText.Length ? messageText.Substring(startIndex) : messageText.Substring(startIndex, endIndex - startIndex + 1),
-                                    Uri = $"https://static-cdn.jtvnw.net/emoticons/v1/{emoteParts[0]}/3.0",
-                                    StartIndex = startIndex,
-                                    EndIndex = endIndex
-                                });
-                            }
-                            return emoteList;
-                        });
-                    }
-
                     if (messageType == "PRIVMSG" || messageType == "NOTIFY")
                     {
+                        if (messageMeta.TryGetValue("emotes", out var emoteStr))
+                        {
+                            // Parse all the normal Twitch emotes
+                            messageEmotes = emoteStr.Split('/').Aggregate(new List<IChatEmote>(), (emoteList, emoteInstanceString) =>
+                            {
+                                var emoteParts = emoteInstanceString.Split(':');
+                                foreach (var instanceString in emoteParts[1].Split(','))
+                                {
+                                    var instanceParts = instanceString.Split('-');
+                                    int startIndex = int.Parse(instanceParts[0]);
+                                    int endIndex = int.Parse(instanceParts[1]);
+
+                                    if (startIndex >= messageText.Length)
+                                    {
+                                        _logger.LogWarning($"Start index is greater than message length! RawMessage: {match.Value}, InstanceString: {instanceString}, EmoteStr: {emoteStr}, StartIndex: {startIndex}, MessageLength: {messageText.Length}, IsActionMessage: {isActionMessage}");
+                                    }
+
+                                    emoteList.Add(new TwitchEmote()
+                                    {
+                                        Id = emoteParts[0],
+                                        Name = endIndex >= messageText.Length ? messageText.Substring(startIndex) : messageText.Substring(startIndex, endIndex - startIndex + 1),
+                                        Uri = $"https://static-cdn.jtvnw.net/emoticons/v1/{emoteParts[0]}/3.0",
+                                        StartIndex = startIndex,
+                                        EndIndex = endIndex,
+                                        IsAnimated = false
+                                    });
+                                }
+                                return emoteList;
+                            });
+                        }
+
                         StringBuilder currentWord = new StringBuilder();
                         for (int i = 0; i <= messageText.Length; i++)
                         {
@@ -136,15 +140,16 @@ namespace StreamCore.Services.Twitch
                                     int startIndex = i - lastWord.Length;
                                     int endIndex = i - 1;
 
-                                    if(_twitchDataProvider.IsThirdPartyEmote(lastWord, messageChannelName, out var uri))
+                                    if (_twitchDataProvider.TryGetThirdPartyEmote(lastWord, messageChannelName, out var imageData))
                                     {
                                         messageEmotes.Add(new TwitchEmote()
                                         {
                                             Id = lastWord,
                                             Name = lastWord,
-                                            Uri = uri,
+                                            Uri = imageData.Uri,
                                             StartIndex = startIndex,
-                                            EndIndex = endIndex
+                                            EndIndex = endIndex,
+                                            IsAnimated = imageData.IsAnimated
                                         });
                                     }
 
@@ -156,15 +161,12 @@ namespace StreamCore.Services.Twitch
                                 currentWord.Append(messageText[i]);
                             }
                         }
+                        messageEmotes.Sort((a, b) =>
+                        {
+                            return b.StartIndex - a.StartIndex;
+                        });
                     }
-
-                    messageEmotes.Sort((a, b) =>
-                    {
-                        return b.StartIndex - a.StartIndex;
-                    });
-
-                    TwitchRoomstate messageRoomstate = null;
-                    if (messageType == "ROOMSTATE")
+                    else if (messageType == "ROOMSTATE")
                     {
                         messageRoomstate = new TwitchRoomstate()
                         {
@@ -177,19 +179,37 @@ namespace StreamCore.Services.Twitch
                             SlowModeInterval = messageMeta.TryGetValue("slow", out var slow) && int.TryParse(slow, out var slowModeInterval) ? slowModeInterval : 0,
                             SubscribersOnly = messageMeta.TryGetValue("subs-only", out var subsOnly) ? subsOnly == "1" : false
                         };
-                        if (channel != null)
+                        if (channel is TwitchChannel twitchChannel)
                         {
-                            channel.AsTwitchChannel().Roomstate = messageRoomstate;
+                            twitchChannel.Roomstate = messageRoomstate;
                         }
                     }
+                    else if (messageType == "USERNOTICE")
+                    {
+                        if (messageMeta.TryGetValue("system-msg", out var systemMsg))
+                        {
+                            messageText = systemMsg.Replace(@"\s", " ");
+                        }
+                    }
+                    //twitchMsg.user.Twitch.isBroadcaster = twitchMsg.user.Twitch.badges.Contains("broadcaster/");
+                    //twitchMsg.user.Twitch.isSub = twitchMsg.user.Twitch.badges.Contains("subscriber/") || twitchMsg.user.Twitch.badges.Contains("founder/");
+                    //twitchMsg.user.Twitch.isTurbo = twitchMsg.user.Twitch.badges.Contains("turbo/");
+                    //twitchMsg.user.Twitch.isMod = twitchMsg.user.Twitch.badges.Contains("moderator/");
+                    //twitchMsg.user.Twitch.isVip = twitchMsg.user.Twitch.badges.Contains("vip/");
 
                     var newMessage = new TwitchMessage()
                     {
+                        Id = messageMeta.TryGetValue("id", out var messageId) ? messageId : "", // TODO: default id of some sort?
                         Sender = new TwitchUser()
                         {
                             Id = messageMeta.TryGetValue("user-id", out var uid) ? uid : "",
                             Name = messageMeta.TryGetValue("display-name", out var name) ? name : match.Groups["HostName"].Success ? match.Groups["HostName"].Value.Split('!')[0] : "",
                             Color = messageMeta.TryGetValue("color", out var color) ? color : "#ffffff", // TODO: generate random color if one doesn't exist
+                            IsModerator = badgeStr != null && badgeStr.Contains("moderator/"),
+                            IsBroadcaster = badgeStr != null && badgeStr.Contains("broadcaster/"),
+                            IsSubscriber = badgeStr != null && (badgeStr.Contains("subscriber/") || badgeStr.Contains("founder/")),
+                            IsTurbo = badgeStr != null && badgeStr.Contains("turbo/"),
+                            IsVip = badgeStr != null && badgeStr.Contains("vip/"),
                             Badges = userBadges
                         },
                         Channel = channel != null ? channel : new TwitchChannel()
@@ -199,7 +219,8 @@ namespace StreamCore.Services.Twitch
                         },
                         Emotes = messageEmotes.ToArray(),
                         Message = messageText,
-                        IsActionMessage = isActionMessage, 
+                        IsActionMessage = isActionMessage,
+                        IsSystemMessage = messageType == "NOTICE" || messageType == "USERNOTICE",
                         Metadata = messageMeta,
                         Type = messageType
                     };
@@ -211,7 +232,7 @@ namespace StreamCore.Services.Twitch
                     //}
                     messages.Add(newMessage);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     _logger.LogError(ex, $"Exception while parsing Twitch message {messageText}");
                 }

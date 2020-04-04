@@ -9,6 +9,8 @@ namespace StreamCore.Interfaces
         string Id { get; }
         string Name { get; }
         string Color { get; }
+        bool IsBroadcaster { get; }
+        bool IsModerator { get; }
         IChatBadge[] Badges { get; }
     }
 }

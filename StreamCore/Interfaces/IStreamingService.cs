@@ -7,12 +7,39 @@ namespace StreamCore.Interfaces
 {
     public interface IStreamingService
     {
+        /// <summary>
+        /// Callback that occurs when a successful login to the provided streaming service occurs 
+        /// </summary>
         event Action<IStreamingService> OnLogin;
-        event Action<IChatMessage> OnMessageReceived;
-        event Action<IChatChannel> OnJoinRoom;
-        event Action<IChatChannel> OnRoomStateUpdated;
-        event Action<IChatChannel> OnLeaveRoom;
 
-        void SendTextMessage(string message, string channel = null);
+        /// <summary>
+        /// Callback that occurs when a text message is received
+        /// </summary>
+        event Action<IChatMessage> OnTextMessageReceived;
+
+        /// <summary>
+        /// Callback that occurs when the user joins a chat channel
+        /// </summary>
+        event Action<IChatChannel> OnJoinChannel;
+
+        /// <summary>
+        /// Callback that occurs when a chat channel receives updated info
+        /// </summary>
+        event Action<IChatChannel> OnRoomStateUpdated;
+
+        /// <summary>
+        /// Callback that occurs when the user leaves a chat channel
+        /// </summary>
+        event Action<IChatChannel> OnLeaveChannel;
+
+        /// <summary>
+        /// Callback that occurs when a users chat is cleared. If null, that means the entire chat was cleared; otherwise the argument is a user id.
+        /// </summary>
+        event Action<string> OnChatCleared;
+
+        /// <summary>
+        /// Callback that occurs when a specific chat message is cleared. Argument is the message id to be cleared.
+        /// </summary>
+        event Action<string> OnMessageCleared;
     }
 }

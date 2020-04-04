@@ -29,9 +29,9 @@ namespace StreamCoreTester
             streamingService = streamCore.RunAllServices();
             twitchService = streamingService.GetTwitchService();
             streamingService.OnLogin += StreamingService_OnLogin; 
-            streamingService.OnMessageReceived += StreamServiceProvider_OnMessageReceived;
-            streamingService.OnJoinRoom += StreamServiceProvider_OnChannelJoined;
-            streamingService.OnLeaveRoom += StreamServiceProvider_OnLeaveChannel;
+            streamingService.OnTextMessageReceived += StreamServiceProvider_OnMessageReceived;
+            streamingService.OnJoinChannel += StreamServiceProvider_OnChannelJoined;
+            streamingService.OnLeaveChannel += StreamServiceProvider_OnLeaveChannel;
             streamingService.OnRoomStateUpdated += StreamServiceProvider_OnChannelStateUpdated;
             //Console.WriteLine($"StreamService is of type {streamServiceProvider.ServiceType.Name}");
         }

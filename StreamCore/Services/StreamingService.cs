@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Text;
+using System.Linq;
 
 namespace StreamCore.Services
 {
@@ -19,19 +20,39 @@ namespace StreamCore.Services
             _streamingServices = streamingServices;
             foreach (var service in _streamingServices)
             {
-                service.OnMessageReceived += HandleOnTextMessageReceived;
-                service.OnJoinRoom += HandleOnJoinRoom;
-                service.OnRoomStateUpdated += HandleOnRoomStateUpdated;
-                service.OnLeaveRoom += HandleOnLeaveRoom;
-                service.OnLogin += HandleOnLogin;
+                service.OnTextMessageReceived += Service_OnTextMessageReceived;
+                service.OnJoinChannel += Service_OnJoinChannel;
+                service.OnRoomStateUpdated += Service_OnRoomStateUpdated;
+                service.OnLeaveChannel += Service_OnLeaveChannel;
+                service.OnLogin += Service_OnLogin;
+                service.OnChatCleared += Service_OnChatCleared;
+                service.OnMessageCleared += Service_OnMessageCleared;
             }
         }
+
 
         private ILogger _logger;
         private IList<IStreamingService> _streamingServices;
         private object _invokeLock = new object();
 
-        private void HandleOnLogin(IStreamingService svc)
+
+        private void Service_OnMessageCleared(string messageId)
+        {
+            lock (_invokeLock)
+            {
+                _onMessageClearedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), messageId, _logger);
+            }
+        }
+
+        private void Service_OnChatCleared(string userId)
+        {
+            lock (_invokeLock)
+            {
+                _onChatClearedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), userId, _logger);
+            }
+        }
+
+        private void Service_OnLogin(IStreamingService svc)
         {
             lock (_invokeLock)
             {
@@ -39,7 +60,7 @@ namespace StreamCore.Services
             }
         }
 
-        private void HandleOnLeaveRoom(IChatChannel channel)
+        private void Service_OnLeaveChannel(IChatChannel channel)
         {
             lock (_invokeLock)
             {
@@ -47,7 +68,7 @@ namespace StreamCore.Services
             }
         }
 
-        private void HandleOnRoomStateUpdated(IChatChannel channel)
+        private void Service_OnRoomStateUpdated(IChatChannel channel)
         {
             lock (_invokeLock)
             {
@@ -55,7 +76,7 @@ namespace StreamCore.Services
             }
         }
 
-        private void HandleOnTextMessageReceived(IChatMessage message)
+        private void Service_OnTextMessageReceived(IChatMessage message)
         {
             lock (_invokeLock)
             {
@@ -63,7 +84,7 @@ namespace StreamCore.Services
             }
         }
 
-        private void HandleOnJoinRoom(IChatChannel channel)
+        private void Service_OnJoinChannel(IChatChannel channel)
         {
             lock (_invokeLock)
             {
@@ -71,36 +92,14 @@ namespace StreamCore.Services
             }
         }
 
-        public void SendTextMessage(string message, string channel)
-        {
-            foreach(var service in _streamingServices)
-            {
-                service.SendTextMessage(message, channel);
-            }
-        }
-
         public TwitchService GetTwitchService()
         {
-            foreach (var service in _streamingServices)
-            {
-                if (service is TwitchService)
-                {
-                    return service as TwitchService;
-                }
-            }
-            return null;
+            return (TwitchService)_streamingServices.FirstOrDefault(s => s is TwitchService);
         }
 
         public MixerService GetMixerService()
         {
-            foreach (var service in _streamingServices)
-            {
-                if (service is MixerService)
-                {
-                    return service as MixerService;
-                }
-            }
-            return null;
+            return (MixerService)_streamingServices.FirstOrDefault(s => s is MixerService);
         }
     }
 }

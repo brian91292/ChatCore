@@ -12,5 +12,6 @@ namespace StreamCore.Interfaces
         string Uri { get; }
         int StartIndex { get; }
         int EndIndex { get; }
+        bool IsAnimated { get; }
     }
 }

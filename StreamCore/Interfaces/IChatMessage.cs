@@ -7,6 +7,8 @@ namespace StreamCore.Interfaces
 {
     public interface IChatMessage
     {
+        string Id { get; }
+        bool IsSystemMessage { get; }
         bool IsActionMessage { get; }
         string Message { get; }
         IChatUser Sender { get; }

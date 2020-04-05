@@ -29,7 +29,7 @@ namespace StreamCoreTester
             streamingService = streamCore.RunAllServices();
             twitchService = streamingService.GetTwitchService();
             streamingService.OnLogin += StreamingService_OnLogin; 
-            streamingService.OnTextMessageReceived += StreamServiceProvider_OnMessageReceived;
+            //streamingService.OnTextMessageReceived += StreamServiceProvider_OnMessageReceived;
             streamingService.OnJoinChannel += StreamServiceProvider_OnChannelJoined;
             streamingService.OnLeaveChannel += StreamServiceProvider_OnLeaveChannel;
             streamingService.OnRoomStateUpdated += StreamServiceProvider_OnChannelStateUpdated;
@@ -40,7 +40,7 @@ namespace StreamCoreTester
         {
             if(streamingService is TwitchService twitchService)
             {
-                twitchService.JoinChannel("xqcow");
+                twitchService.JoinChannel("brian91292");
             }
         }
 
@@ -80,12 +80,12 @@ namespace StreamCoreTester
 
         private void button1_Click(object sender, EventArgs e)
         {
-            streamingService.GetTwitchService().PartChannel("brian91292");
+            streamingService.GetTwitchService().PartChannel("xqcow");
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            streamingService.GetTwitchService().JoinChannel("brian91292");
+            streamingService.GetTwitchService().JoinChannel("xqcow");
         }
     }
 }

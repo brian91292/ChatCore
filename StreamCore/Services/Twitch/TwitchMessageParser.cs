@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -17,14 +18,16 @@ namespace StreamCore.Services.Twitch
         private readonly Regex _twitchMessageRegex = new Regex(@"^(?:@(?<Tags>[^\r\n ]*) +|())(?::(?<HostName>[^\r\n ]+) +|())(?<MessageType>[^\r\n ]+)(?: +(?<ChannelName>[^:\r\n ]+[^\r\n ]*(?: +[^:\r\n ]+[^\r\n ]*)*)|())?(?: +:(?<Message>[^\r\n]*)| +())?[\r\n]*$", RegexOptions.Compiled | RegexOptions.Multiline);
         private readonly Regex _tagRegex = new Regex(@"(?<Tag>[^@^;^=]+)=(?<Value>[^;\s]+)", RegexOptions.Compiled | RegexOptions.Multiline);
 
-        public TwitchMessageParser(ILogger<TwitchMessageParser> logger, TwitchDataProvider twitchDataProvider)
+        public TwitchMessageParser(ILogger<TwitchMessageParser> logger, TwitchDataProvider twitchDataProvider, IEmojiParser emojiParser)
         {
             _logger = logger;
             _twitchDataProvider = twitchDataProvider;
+            _emojiParser = emojiParser;
         }
 
         private ILogger _logger;
         private TwitchDataProvider _twitchDataProvider;
+        private IEmojiParser _emojiParser;
 
         /// <summary>
         /// Takes a raw Twitch message and parses it into an IChatMessage
@@ -34,12 +37,15 @@ namespace StreamCore.Services.Twitch
         /// <returns>True if parsedMessages.Count > 0</returns>
         public bool ParseRawMessage(string rawMessage, ConcurrentDictionary<string, IChatChannel> channelInfo, out IChatMessage[] parsedMessages)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             //TODO: fix exception when user only sends a single emote with no spaces
             parsedMessages = null;
             var matches = _twitchMessageRegex.Matches(rawMessage);
             if (matches.Count == 0)
             {
                 _logger.LogInformation($"Unhandled message: {rawMessage}");
+                stopwatch.Stop();
                 return false;
             }
 
@@ -129,6 +135,7 @@ namespace StreamCore.Services.Twitch
                             });
                         }
 
+                        // Parse all the third party (BTTV, FFZ, etc) emotes
                         StringBuilder currentWord = new StringBuilder();
                         for (int i = 0; i <= messageText.Length; i++)
                         {
@@ -161,6 +168,11 @@ namespace StreamCore.Services.Twitch
                                 currentWord.Append(messageText[i]);
                             }
                         }
+
+                        // Parse all emojis
+                        messageEmotes.AddRange(_emojiParser.FindEmojis(messageText));
+
+                        // Sort the emotes in descending order to make replacing them in the string later on easier
                         messageEmotes.Sort((a, b) =>
                         {
                             return b.StartIndex - a.StartIndex;
@@ -191,12 +203,7 @@ namespace StreamCore.Services.Twitch
                             messageText = systemMsg.Replace(@"\s", " ");
                         }
                     }
-                    //twitchMsg.user.Twitch.isBroadcaster = twitchMsg.user.Twitch.badges.Contains("broadcaster/");
-                    //twitchMsg.user.Twitch.isSub = twitchMsg.user.Twitch.badges.Contains("subscriber/") || twitchMsg.user.Twitch.badges.Contains("founder/");
-                    //twitchMsg.user.Twitch.isTurbo = twitchMsg.user.Twitch.badges.Contains("turbo/");
-                    //twitchMsg.user.Twitch.isMod = twitchMsg.user.Twitch.badges.Contains("moderator/");
-                    //twitchMsg.user.Twitch.isVip = twitchMsg.user.Twitch.badges.Contains("vip/");
-
+                   
                     var newMessage = new TwitchMessage()
                     {
                         Id = messageMeta.TryGetValue("id", out var messageId) ? messageId : "", // TODO: default id of some sort?
@@ -239,6 +246,8 @@ namespace StreamCore.Services.Twitch
             }
             if (messages.Count > 0)
             {
+                stopwatch.Stop();
+                _logger.LogDebug($"Successfully parsed {messages.Count} messages in {(decimal)stopwatch.ElapsedTicks/TimeSpan.TicksPerMillisecond}ms");
                 parsedMessages = messages.ToArray();
                 return true;
             }

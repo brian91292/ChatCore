@@ -4,9 +4,8 @@ using System.Text;
 
 namespace StreamCore.Interfaces
 {
-    public interface IPathProvider
+    public interface IEmojiParser
     {
-        string GetDataPath();
-        string GetResourcePath();
+        List<IChatEmote> FindEmojis(string str);
     }
 }

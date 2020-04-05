@@ -12,5 +12,10 @@ namespace StreamCore.Services
         {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ".streamcore");
         }
+
+        public string GetResourcePath()
+        {
+            return Path.Combine(GetDataPath(), "resources");
+        }
     }
 }

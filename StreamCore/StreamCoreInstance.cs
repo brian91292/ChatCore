@@ -75,6 +75,7 @@ namespace StreamCore
                         .AddSingleton<ISettingsProvider, MainSettingsProvider>()
                         .AddSingleton<IUserAuthManager, UserAuthManager>()
                         .AddSingleton<IWebLoginProvider, WebLoginProvider>()
+                        .AddSingleton<IEmojiParser, FrwTwemojiParser>()
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
                     if (_serviceProvider.GetService<ISettingsProvider>().RunWebApp)

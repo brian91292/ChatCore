@@ -67,6 +67,7 @@ namespace StreamCore.Services.Twitch
         private bool _isStarted = false;
         private string _anonUsername;
         private object _messageReceivedLock = new object();
+        private string _loggedInUsername;
 
         private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? _anonUsername : "@"; }
         private string _oAuthToken { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? "" : _authManager.Credentials.Twitch_OAuthToken; }
@@ -87,7 +88,7 @@ namespace StreamCore.Services.Twitch
         {
             lock (_messageReceivedLock)
             {
-                //_logger.LogInformation("RawMessage: " + message);
+                //_logger.LogInformation("RawMessage: " + rawMessage);
                 _onRawMessageReceivedCallbacks?.InvokeAll(assembly, this, rawMessage);
                 if (_messageParser.ParseRawMessage(rawMessage, _channels, out var parsedMessages))
                 {
@@ -105,8 +106,9 @@ namespace StreamCore.Services.Twitch
                                 continue;
                             case "376":  // successful login
                                 _twitchDataProvider.TryRequestGlobalResources();
+                                _loggedInUsername = twitchMessage.Channel.Id;
                                 // This isn't a typo, when you first sign in your username is in the channel id.
-                                _logger.LogInformation($"Logged into Twitch as {twitchMessage.Channel.Id}");
+                                _logger.LogInformation($"Logged into Twitch as {_loggedInUsername}");
                                 _websocketService.ReconnectDelay = 500;
                                 _onLoginCallbacks?.InvokeAll(assembly, this, _logger);
                                 continue;
@@ -153,6 +155,10 @@ namespace StreamCore.Services.Twitch
                             case "USERSTATE":
                             case "GLOBALUSERSTATE":
                                 LoggedInUser = twitchMessage.Sender.AsTwitchUser();
+                                if(string.IsNullOrEmpty(LoggedInUser.Name))
+                                {
+                                    LoggedInUser.Name = _loggedInUsername;
+                                }
                                 continue;
                             case "CLEARCHAT":
                                 twitchMessage.Metadata.TryGetValue("target-user-id", out var targetUser);

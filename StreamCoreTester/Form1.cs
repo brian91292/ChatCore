@@ -24,7 +24,6 @@ namespace StreamCoreTester
         {
             InitializeComponent();
 
-
             var streamCore = StreamCoreInstance.Create();
             streamingService = streamCore.RunAllServices();
             twitchService = streamingService.GetTwitchService();
@@ -36,15 +35,15 @@ namespace StreamCoreTester
             //Console.WriteLine($"StreamService is of type {streamServiceProvider.ServiceType.Name}");
         }
 
-        private void StreamingService_OnLogin(IStreamingService streamingService)
+        private void StreamingService_OnLogin(IStreamingService svc)
         {
-            if(streamingService is TwitchService twitchService)
+            if(svc is TwitchService twitchService)
             {
                 twitchService.JoinChannel("brian91292");
             }
         }
 
-        private void StreamServiceProvider_OnChannelStateUpdated(IChatChannel channel)
+        private void StreamServiceProvider_OnChannelStateUpdated(IStreamingService svc, IChatChannel channel)
         {
             Console.WriteLine($"Channel state updated for {channel.GetType().Name} {channel.Id}");
             if (channel is TwitchChannel twitchChannel)
@@ -53,17 +52,17 @@ namespace StreamCoreTester
             }
         }
 
-        private void StreamServiceProvider_OnLeaveChannel(IChatChannel channel)
+        private void StreamServiceProvider_OnLeaveChannel(IStreamingService svc, IChatChannel channel)
         {
             Console.WriteLine($"Left channel {channel.Id}");
         }
 
-        private void StreamServiceProvider_OnChannelJoined(IChatChannel channel)
+        private void StreamServiceProvider_OnChannelJoined(IStreamingService svc, IChatChannel channel)
         {
             Console.WriteLine($"Joined channel {channel.Id}");
         }
 
-        private void StreamServiceProvider_OnMessageReceived(IChatMessage msg)
+        private void StreamServiceProvider_OnMessageReceived(IStreamingService svc, IChatMessage msg)
         {
             Console.WriteLine($"{msg.Sender.Name}: {msg.Message}");
             //Console.WriteLine($"Bytes: {BitConverter.ToString(Encoding.UTF32.GetBytes(msg.Message))}");

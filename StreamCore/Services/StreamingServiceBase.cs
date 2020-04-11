@@ -10,29 +10,29 @@ namespace StreamCore.Services
 {
     public class StreamingServiceBase
     {
-        protected ConcurrentDictionary<Assembly, Action<IChatMessage>> _onTextMessageReceivedCallbacks = new ConcurrentDictionary<Assembly, Action<IChatMessage>>();
-        public event Action<IChatMessage> OnTextMessageReceived
+        protected ConcurrentDictionary<Assembly, Action<IStreamingService, IChatMessage>> _onTextMessageReceivedCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService, IChatMessage>>();
+        public event Action<IStreamingService, IChatMessage> OnTextMessageReceived
         {
             add => _onTextMessageReceivedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
             remove => _onTextMessageReceivedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onJoinRoomCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
-        public event Action<IChatChannel> OnJoinChannel
+        protected ConcurrentDictionary<Assembly, Action<IStreamingService, IChatChannel>> _onJoinRoomCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService, IChatChannel>>();
+        public event Action<IStreamingService, IChatChannel> OnJoinChannel
         {
             add => _onJoinRoomCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
             remove => _onJoinRoomCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onLeaveRoomCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
-        public event Action<IChatChannel> OnLeaveChannel
+        protected ConcurrentDictionary<Assembly, Action<IStreamingService, IChatChannel>> _onLeaveRoomCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService, IChatChannel>>();
+        public event Action<IStreamingService, IChatChannel> OnLeaveChannel
         {
             add => _onLeaveRoomCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
             remove => _onLeaveRoomCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        protected ConcurrentDictionary<Assembly, Action<IChatChannel>> _onRoomStateUpdatedCallbacks = new ConcurrentDictionary<Assembly, Action<IChatChannel>>();
-        public event Action<IChatChannel> OnRoomStateUpdated
+        protected ConcurrentDictionary<Assembly, Action<IStreamingService, IChatChannel>> _onRoomStateUpdatedCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService, IChatChannel>>();
+        public event Action<IStreamingService, IChatChannel> OnRoomStateUpdated
         {
             add => _onRoomStateUpdatedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
             remove => _onRoomStateUpdatedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
@@ -45,15 +45,15 @@ namespace StreamCore.Services
             remove => _onLoginCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        protected ConcurrentDictionary<Assembly, Action<string>> _onChatClearedCallbacks = new ConcurrentDictionary<Assembly, Action<string>>();
-        public event Action<string> OnChatCleared
+        protected ConcurrentDictionary<Assembly, Action<IStreamingService, string>> _onChatClearedCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService, string>>();
+        public event Action<IStreamingService, string> OnChatCleared
         {
             add => _onChatClearedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
             remove => _onChatClearedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        protected ConcurrentDictionary<Assembly, Action<string>> _onMessageClearedCallbacks = new ConcurrentDictionary<Assembly, Action<string>>();
-        public event Action<string> OnMessageCleared
+        protected ConcurrentDictionary<Assembly, Action<IStreamingService, string>> _onMessageClearedCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService, string>>();
+        public event Action<IStreamingService, string> OnMessageCleared
         {
             add => _onMessageClearedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
             remove => _onMessageClearedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);

@@ -74,7 +74,7 @@ namespace StreamCore.Services.Twitch
                     List<IChatEmote> messageEmotes = new List<IChatEmote>();
                     TwitchRoomstate messageRoomstate = null;
 
-                    bool isActionMessage = false;
+                    bool isActionMessage = false, isHighlighted = false;
                     if (messageText.StartsWith("\u0001ACTION"))
                     {
                         messageText = messageText.Remove(messageText.Length - 1, 1).Remove(0, 8);
@@ -201,6 +201,7 @@ namespace StreamCore.Services.Twitch
                         if (messageMeta.TryGetValue("system-msg", out var systemMsg))
                         {
                             messageText = systemMsg.Replace(@"\s", " ");
+                            isHighlighted = true;
                         }
                     }
                    
@@ -228,6 +229,7 @@ namespace StreamCore.Services.Twitch
                         Message = messageText,
                         IsActionMessage = isActionMessage,
                         IsSystemMessage = messageType == "NOTICE" || messageType == "USERNOTICE",
+                        IsHighlighted = isHighlighted,
                         Metadata = messageMeta,
                         Type = messageType
                     };

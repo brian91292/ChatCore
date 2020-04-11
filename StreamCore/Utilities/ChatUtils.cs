@@ -1,5 +1,6 @@
 ﻿using StreamCore.Interfaces;
 using StreamCore.Models.Twitch;
+using StreamCore.Services.Twitch;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,6 +9,11 @@ namespace StreamCore
 {
     public static class ChatUtils
     {
+        public static TwitchService AsTwitchService(this IStreamingService svc)
+        {
+            return svc as TwitchService;
+        }
+
         public static TwitchMessage AsTwitchMessage(this IChatMessage msg)
         {
             return msg as TwitchMessage;

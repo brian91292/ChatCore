@@ -36,19 +36,19 @@ namespace StreamCore.Services
         private object _invokeLock = new object();
 
 
-        private void Service_OnMessageCleared(string messageId)
+        private void Service_OnMessageCleared(IStreamingService svc, string messageId)
         {
             lock (_invokeLock)
             {
-                _onMessageClearedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), messageId, _logger);
+                _onMessageClearedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), svc, messageId, _logger);
             }
         }
 
-        private void Service_OnChatCleared(string userId)
+        private void Service_OnChatCleared(IStreamingService svc, string userId)
         {
             lock (_invokeLock)
             {
-                _onChatClearedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), userId, _logger);
+                _onChatClearedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), svc, userId, _logger);
             }
         }
 
@@ -60,35 +60,35 @@ namespace StreamCore.Services
             }
         }
 
-        private void Service_OnLeaveChannel(IChatChannel channel)
+        private void Service_OnLeaveChannel(IStreamingService svc, IChatChannel channel)
         {
             lock (_invokeLock)
             {
-                _onLeaveRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+                _onLeaveRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), svc, channel, _logger);
             }
         }
 
-        private void Service_OnRoomStateUpdated(IChatChannel channel)
+        private void Service_OnRoomStateUpdated(IStreamingService svc, IChatChannel channel)
         {
             lock (_invokeLock)
             {
-                _onRoomStateUpdatedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+                _onRoomStateUpdatedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), svc, channel, _logger);
             }
         }
 
-        private void Service_OnTextMessageReceived(IChatMessage message)
+        private void Service_OnTextMessageReceived(IStreamingService svc, IChatMessage message)
         {
             lock (_invokeLock)
             {
-                _onTextMessageReceivedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), message, _logger);
+                _onTextMessageReceivedCallbacks.InvokeAll(Assembly.GetCallingAssembly(), svc, message, _logger);
             }
         }
 
-        private void Service_OnJoinChannel(IChatChannel channel)
+        private void Service_OnJoinChannel(IStreamingService svc, IChatChannel channel)
         {
             lock (_invokeLock)
             {
-                _onJoinRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), channel, _logger);
+                _onJoinRoomCallbacks.InvokeAll(Assembly.GetCallingAssembly(), svc, channel, _logger);
             }
         }
 

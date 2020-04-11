@@ -42,8 +42,6 @@ namespace StreamCore.Services
                 {
                     continue;
                 }
-
-
                 var emoji = new Emoji()
                 {
                     Id = unicodeStr,

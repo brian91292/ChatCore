@@ -44,7 +44,7 @@ namespace StreamCore.Services
                 }
                 var emoji = new Emoji()
                 {
-                    Id = unicodeStr,
+                    Id = $"Emoji_{unicodeStr}",
                     Name = match.Value,
                     StartIndex = match.Index,
                     EndIndex = match.Index + match.Length-1,

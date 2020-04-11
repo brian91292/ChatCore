@@ -13,7 +13,7 @@ namespace StreamCore.Services.Twitch
 {
     internal class TwitchChannelResource
     {
-        public Dictionary<string, string> TwitchBadges;
+        public Dictionary<string, TwitchImageData> TwitchBadges;
         public Dictionary<string, TwitchImageData> BTTVEmotes;
         public Dictionary<string, TwitchImageData> FFZEmotes;
     }
@@ -30,7 +30,7 @@ namespace StreamCore.Services.Twitch
         private HttpClient _httpClient;
 
         internal Dictionary<string, TwitchChannelResource> TwitchChannelResources = new Dictionary<string, TwitchChannelResource>();
-        internal Dictionary<string, string> TwitchGlobalBadges;
+        internal Dictionary<string, TwitchImageData> TwitchGlobalBadges;
         internal Dictionary<string, TwitchImageData> BTTVGlobalEmotes;
         internal Dictionary<string, TwitchImageData> FFZGlobalEmotes;
 
@@ -42,7 +42,7 @@ namespace StreamCore.Services.Twitch
             {
                 if (TwitchGlobalBadges is null && BTTVGlobalEmotes is null && FFZGlobalEmotes is null)
                 {
-                    TwitchGlobalBadges = new Dictionary<string, string>();
+                    TwitchGlobalBadges = new Dictionary<string, TwitchImageData>();
                     BTTVGlobalEmotes = new Dictionary<string, TwitchImageData>();
                     FFZGlobalEmotes = new Dictionary<string, TwitchImageData>();
                     Task.Run(async () =>
@@ -73,7 +73,7 @@ namespace StreamCore.Services.Twitch
                                         string finalName = $"{badgeName}{badgeVersion}";
                                         string uri = version.Value.AsObject["image_url_4x"].Value;
                                         //_logger.LogInformation($"Global Badge: {finalName}, URI: {uri}");
-                                        TwitchGlobalBadges.Add(finalName, uri);
+                                        TwitchGlobalBadges.Add(finalName, new TwitchImageData() { Uri = uri, IsAnimated = false, Type = "TwitchGlobalBadge" });
                                     }
                                 }
                             }
@@ -106,7 +106,7 @@ namespace StreamCore.Services.Twitch
                                 {
                                     string uri = $"https://cdn.betterttv.net/emote/{o["id"].Value}/3x";
                                     //_logger.LogInformation($"BTTV Global Emote: {o["code"].Value}, URI: {uri}");
-                                    BTTVGlobalEmotes.Add(o["code"].Value, new TwitchImageData() { Uri = uri, IsAnimated = o["imageType"].Value == "gif" });
+                                    BTTVGlobalEmotes.Add(o["code"].Value, new TwitchImageData() { Uri = uri, IsAnimated = o["imageType"].Value == "gif", Type = "BTTVGlobalEmote" });
                                 }
                             }
                         }
@@ -139,7 +139,7 @@ namespace StreamCore.Services.Twitch
                                     JSONObject urls = o["urls"].AsObject;
                                     string uri = urls[urls.Count - 1].Value;
                                     //_logger.LogInformation($"FFZ Global Emote: {o["name"].Value}, URI: {uri} (all urls: {urls.Value})");
-                                    FFZGlobalEmotes.Add(o["name"].Value, new TwitchImageData() { Uri = uri, IsAnimated = false });
+                                    FFZGlobalEmotes.Add(o["name"].Value, new TwitchImageData() { Uri = uri, IsAnimated = false, Type = "FFZGlobalEmote" });
                                 }
 
                             }
@@ -163,7 +163,7 @@ namespace StreamCore.Services.Twitch
                 {
                     _logger.LogInformation($"Requesting channel badges for {channel.Id}");
 
-                    var newChannelBadges = new Dictionary<string, string>();
+                    var newChannelBadges = new Dictionary<string, TwitchImageData>();
                     var newBTTVEmotes = new Dictionary<string, TwitchImageData>();
                     var newFFZEmotes = new Dictionary<string, TwitchImageData>();
                     var newChannelResources = new TwitchChannelResource()
@@ -201,7 +201,7 @@ namespace StreamCore.Services.Twitch
                                         string finalName = $"{badgeName}{badgeVersion}";
                                         string uri = version.Value.AsObject["image_url_4x"].Value;
                                         //_logger.LogInformation($"Channel Badge: {finalName}, URI: {uri}");
-                                        newChannelBadges.Add(finalName, uri);
+                                        newChannelBadges.Add(finalName, new TwitchImageData { Uri = uri, IsAnimated = false, Type = "TwitchChannelBadge" });
                                     }
                                 }
                             }
@@ -234,7 +234,7 @@ namespace StreamCore.Services.Twitch
                                 {
                                     string uri = $"https://cdn.betterttv.net/emote/{o["id"].Value}/3x";
                                     //_logger.LogInformation($"BTTV Channel Emote: {o["code"].Value}, URI: {uri}");
-                                    newBTTVEmotes.Add(o["code"].Value, new TwitchImageData() { Uri = uri, IsAnimated = o["imageType"].Value == "gif" });
+                                    newBTTVEmotes.Add(o["code"].Value, new TwitchImageData() { Uri = uri, IsAnimated = o["imageType"].Value == "gif", Type = "BTTVChannelEmote" });
                                 }
                             }
                         }
@@ -267,7 +267,7 @@ namespace StreamCore.Services.Twitch
                                     JSONObject urls = o["urls"].AsObject;
                                     string uri = urls[urls.Count - 1].Value;
                                     //_logger.LogInformation($"FFZ Channel Emote: {o["name"].Value}, URI: {uri} (all urls: {urls.Value})");
-                                    newFFZEmotes.Add(o["name"].Value, new TwitchImageData() { Uri = uri, IsAnimated = false });
+                                    newFFZEmotes.Add(o["name"].Value, new TwitchImageData() { Uri = uri, IsAnimated = false, Type = "FFZChannelEmote" });
                                 }
                             }
                         }
@@ -333,21 +333,21 @@ namespace StreamCore.Services.Twitch
             }
         }
 
-        public string GetBadgeUri(string badgeId, string channel)
+        internal bool TryGetBadgeInfo(string badgeId, string channel, out TwitchImageData badge)
         {
-            string badgeUri = "";
+            badge = null;
             if(!string.IsNullOrEmpty(channel))
             {
-                if(TwitchChannelResources.TryGetValue(channel, out var channelResources) && channelResources.TwitchBadges.TryGetValue(badgeId, out var channelBadgeUri))
+                if(TwitchChannelResources.TryGetValue(channel, out var channelResources) && channelResources.TwitchBadges.TryGetValue(badgeId, out var channelBadge))
                 {
-                    badgeUri = channelBadgeUri;
+                    badge = channelBadge;
                 }
             }
-            if(string.IsNullOrEmpty(badgeUri) && TwitchGlobalBadges != null && TwitchGlobalBadges.TryGetValue(badgeId, out var globalBadgeUri))
+            if(badge == null && TwitchGlobalBadges != null && TwitchGlobalBadges.TryGetValue(badgeId, out var globalBadge))
             {
-                badgeUri = globalBadgeUri;
+                badge = globalBadge;
             }
-            return badgeUri;
+            return badge != null;
         }
 
         //public async Task<bool> RequestDataForChannel(string channel, int roomId)

@@ -8,5 +8,6 @@ namespace StreamCore.Models.Twitch
     {
         public string Uri;
         public bool IsAnimated;
+        public string Type;
     }
 }

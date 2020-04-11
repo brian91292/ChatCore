@@ -40,7 +40,7 @@
     <Exec Command="cd &quot;$(TargetDir)&quot;&#xD;&#xA;$(ILMergeConsolePath) /xmldocs /targetplatform:v4 /ndebug /allowDup /internalize:$(ProjectDir)internalize_excludes.txt /wildcards /out:$(TargetFileName) *.dll" />
   </Target>
 
-  <Target Name="PostBuild" AfterTargets="ILMerge">
+  <Target Name="PostBuild" AfterTargets="ILMerge" Condition="Exists('$(BeatSaberDir)')">
     <Exec Command="copy /Y &quot;$(TargetDir)$(TargetFileName)&quot; &quot;$(BeatSaberDir)\Libs&quot;" />
   </Target>
 

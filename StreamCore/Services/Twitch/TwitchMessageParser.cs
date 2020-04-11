@@ -92,12 +92,14 @@ namespace StreamCore.Services.Twitch
                         userBadges = badgeStr.Split(',').Aggregate(new List<IChatBadge>(), (list, m) =>
                         {
                             var badgeId = m.Replace("/", "");
-                            list.Add(new TwitchBadge()
-                            {
-                                Id = badgeId,
-                                Name = m.Split('/')[0],
-                                Uri = _twitchDataProvider.GetBadgeUri(badgeId, messageChannelName)
-                            });
+                            if (_twitchDataProvider.TryGetBadgeInfo(badgeId, messageChannelName, out var badgeInfo)) {
+                                list.Add(new TwitchBadge()
+                                {
+                                    Id = $"{badgeInfo.Type}_{badgeId}",
+                                    Name = m.Split('/')[0],
+                                    Uri = badgeInfo.Uri
+                                });
+                            }
                             return list;
                         }).ToArray();
                     }
@@ -123,7 +125,7 @@ namespace StreamCore.Services.Twitch
 
                                     emoteList.Add(new TwitchEmote()
                                     {
-                                        Id = emoteParts[0],
+                                        Id = $"TwitchEmote_{emoteParts[0]}",
                                         Name = endIndex >= messageText.Length ? messageText.Substring(startIndex) : messageText.Substring(startIndex, endIndex - startIndex + 1),
                                         Uri = $"https://static-cdn.jtvnw.net/emoticons/v1/{emoteParts[0]}/3.0",
                                         StartIndex = startIndex,
@@ -151,7 +153,7 @@ namespace StreamCore.Services.Twitch
                                     {
                                         messageEmotes.Add(new TwitchEmote()
                                         {
-                                            Id = lastWord,
+                                            Id = $"{imageData.Type}_{lastWord}",
                                             Name = lastWord,
                                             Uri = imageData.Uri,
                                             StartIndex = startIndex,

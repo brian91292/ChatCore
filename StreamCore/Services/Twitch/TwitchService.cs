@@ -20,6 +20,13 @@ namespace StreamCore.Services.Twitch
         public ReadOnlyDictionary<string, IChatChannel> Channels;
         public TwitchUser LoggedInUser { get; internal set; } = null;
 
+        protected ConcurrentDictionary<Assembly, Action<IStreamingService, string>> _onRawMessageReceivedCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService, string>>();
+        public event Action<IStreamingService, string> OnRawMessageReceived
+        {
+            add => _onRawMessageReceivedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
+            remove => _onRawMessageReceivedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
+        }
+
         public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, TwitchDataProvider twitchDataProvider, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthManager authManager, ISettingsProvider settingsProvider, Random rand)
         {
             _logger = logger;
@@ -81,6 +88,7 @@ namespace StreamCore.Services.Twitch
             lock (_messageReceivedLock)
             {
                 //_logger.LogInformation("RawMessage: " + message);
+                _onRawMessageReceivedCallbacks?.InvokeAll(assembly, this, rawMessage);
                 if (_messageParser.ParseRawMessage(rawMessage, _channels, out var parsedMessages))
                 {
                     foreach (TwitchMessage twitchMessage in parsedMessages)

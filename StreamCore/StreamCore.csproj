@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>C:\Users\brian\source\repos\StreamCore\StreamCore\StreamCore.xml</DocumentationFile>
   </PropertyGroup>
 
@@ -16,15 +16,31 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ilmerge" Version="3.0.29" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="3.1.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.0" />
-    <PackageReference Include="WebSocket4Net" Version="0.15.2" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy /Y &quot;$(TargetDir)$(TargetFileName)&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Libs\StreamCore&quot;" />
+  <ItemGroup>
+    <Reference Include="SuperSocket.ClientEngine">
+      <HintPath>Libs\SuperSocket.ClientEngine.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="WebSocket4Net">
+      <HintPath>Libs\WebSocket4Net.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+
+  <Target Name="ILMerge" AfterTargets="Build">
+    <Exec Command="cd &quot;$(TargetDir)&quot;&#xD;&#xA;$(ILMergeConsolePath) /xmldocs /targetplatform:v4 /ndebug /allowDup /internalize:$(ProjectDir)internalize_excludes.txt /wildcards /out:$(TargetFileName) *.dll" />
   </Target>
 
-</Project>
+  <Target Name="PostBuild" AfterTargets="ILMerge">
+    <Exec Command="copy /Y &quot;$(TargetDir)$(TargetFileName)&quot; &quot;$(BeatSaberDir)\Libs&quot;" />
+  </Target>
+
+</Project> 

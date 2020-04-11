@@ -29,7 +29,7 @@ namespace StreamCoreTester
             streamingService = streamCore.RunAllServices();
             twitchService = streamingService.GetTwitchService();
             streamingService.OnLogin += StreamingService_OnLogin; 
-            //streamingService.OnTextMessageReceived += StreamServiceProvider_OnMessageReceived;
+            streamingService.OnTextMessageReceived += StreamServiceProvider_OnMessageReceived;
             streamingService.OnJoinChannel += StreamServiceProvider_OnChannelJoined;
             streamingService.OnLeaveChannel += StreamServiceProvider_OnLeaveChannel;
             streamingService.OnRoomStateUpdated += StreamServiceProvider_OnChannelStateUpdated;
@@ -66,6 +66,7 @@ namespace StreamCoreTester
         private void StreamServiceProvider_OnMessageReceived(IChatMessage msg)
         {
             Console.WriteLine($"{msg.Sender.Name}: {msg.Message}");
+            //Console.WriteLine($"Bytes: {BitConverter.ToString(Encoding.UTF32.GetBytes(msg.Message))}");
             //Console.WriteLine("Badges: ");
             //foreach (var badge in msg.Sender.Badges)
             //{

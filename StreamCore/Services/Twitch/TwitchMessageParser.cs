@@ -28,6 +28,24 @@ namespace StreamCore.Services.Twitch
         private ILogger _logger;
         private TwitchDataProvider _twitchDataProvider;
         private IEmojiParser _emojiParser;
+        private Dictionary<int, string> _userColors = new Dictionary<int, string>();
+        private string GetNameColor(string name)
+        {
+            int nameHash = name.GetHashCode();
+            if (!_userColors.TryGetValue(nameHash, out var nameColor))
+            {
+                // Generate a psuedo-random color based on the users display name
+                Random rand = new Random(nameHash);
+
+                // Convert it to a pastel color
+                System.Drawing.Color pastelColor = ColorUtils.GetPastelShade(System.Drawing.Color.FromArgb(255, rand.Next(255), rand.Next(255), rand.Next(255)));
+                int argb = ((int)pastelColor.R << 16) + ((int)pastelColor.G << 8) + (int)pastelColor.B;
+                string colorString = String.Format("#{0:X6}", argb) + "FF";
+                _userColors.Add(nameHash, colorString);
+                nameColor = colorString;
+            }
+            return nameColor;
+        }
 
         /// <summary>
         /// Takes a raw Twitch message and parses it into an IChatMessage
@@ -58,6 +76,8 @@ namespace StreamCore.Services.Twitch
                     _logger.LogInformation($"Failed to get messageType for message {match.Value}");
                     continue;
                 }
+
+                //_logger.LogInformation($"Message: {match.Value}");
 
                 string messageType = match.Groups["MessageType"].Value;
                 string messageText = match.Groups["Message"].Success ? match.Groups["Message"].Value : "";
@@ -92,7 +112,8 @@ namespace StreamCore.Services.Twitch
                         userBadges = badgeStr.Split(',').Aggregate(new List<IChatBadge>(), (list, m) =>
                         {
                             var badgeId = m.Replace("/", "");
-                            if (_twitchDataProvider.TryGetBadgeInfo(badgeId, messageChannelName, out var badgeInfo)) {
+                            if (_twitchDataProvider.TryGetBadgeInfo(badgeId, messageChannelName, out var badgeInfo))
+                            {
                                 list.Add(new TwitchBadge()
                                 {
                                     Id = $"{badgeInfo.Type}_{badgeId}",
@@ -198,23 +219,16 @@ namespace StreamCore.Services.Twitch
                             twitchChannel.Roomstate = messageRoomstate;
                         }
                     }
-                    else if (messageType == "USERNOTICE")
-                    {
-                        if (messageMeta.TryGetValue("system-msg", out var systemMsg))
-                        {
-                            messageText = systemMsg.Replace(@"\s", " ");
-                            isHighlighted = true;
-                        }
-                    }
-                   
+
+                    string messageSenderName = messageMeta.TryGetValue("display-name", out var name) ? name : match.Groups["HostName"].Success ? match.Groups["HostName"].Value.Split('!')[0] : "";
                     var newMessage = new TwitchMessage()
                     {
                         Id = messageMeta.TryGetValue("id", out var messageId) ? messageId : "", // TODO: default id of some sort?
                         Sender = new TwitchUser()
                         {
                             Id = messageMeta.TryGetValue("user-id", out var uid) ? uid : "",
-                            Name = messageMeta.TryGetValue("display-name", out var name) ? name : match.Groups["HostName"].Success ? match.Groups["HostName"].Value.Split('!')[0] : "",
-                            Color = messageMeta.TryGetValue("color", out var color) ? color : "#ffffff", // TODO: generate random color if one doesn't exist
+                            Name = messageSenderName,
+                            Color = messageMeta.TryGetValue("color", out var color) ? color : GetNameColor(messageSenderName),
                             IsModerator = badgeStr != null && badgeStr.Contains("moderator/"),
                             IsBroadcaster = badgeStr != null && badgeStr.Contains("broadcaster/"),
                             IsSubscriber = badgeStr != null && (badgeStr.Contains("subscriber/") || badgeStr.Contains("founder/")),
@@ -235,6 +249,24 @@ namespace StreamCore.Services.Twitch
                         Metadata = messageMeta,
                         Type = messageType
                     };
+
+                    if (messageType == "USERNOTICE")
+                    {
+                        // USERNOTICE messages (always?) contain a system message, so try to split it out into its own message and queue it up before the actual message from the user
+                        if (messageMeta.TryGetValue("system-msg", out var systemMsg))
+                        {
+                            var systemMessage = (TwitchMessage)newMessage.Clone();
+                            systemMessage.Message = systemMsg.Replace(@"\s", " ");
+                            systemMessage.IsHighlighted = true;
+                            messages.Add(systemMessage);
+                        }
+                        newMessage.IsSystemMessage = false;
+                        if (string.IsNullOrEmpty(newMessage.Message))
+                        {
+                            // If this USERNOTICE message had no actual message, then we only need to queue up the system message
+                            continue;
+                        }
+                    }
 
                     //_logger.LogInformation($"RawMsg: {rawMessage}");
                     //foreach(var kvp in newMessage.Metadata)

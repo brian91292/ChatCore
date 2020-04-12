@@ -17,11 +17,7 @@ namespace StreamCore.Config
         private static readonly ConcurrentDictionary<Type, Func<FieldInfo, string, object>> ConvertFromString = new ConcurrentDictionary<Type, Func<FieldInfo, string, object>>();
         private static readonly ConcurrentDictionary<Type, Func<FieldInfo, object, string>> ConvertToString = new ConcurrentDictionary<Type, Func<FieldInfo, object, string>>();
         private readonly ConcurrentDictionary<string, string> _comments = new ConcurrentDictionary<string, string>();
-        private object _obj;
-        public ObjectSerializer(object obj)
-        {
-            _obj = obj;
-        }
+
         private static void InitTypeHandlers()
         {
             // String handlers
@@ -149,7 +145,7 @@ namespace StreamCore.Config
             return false;
         }
 
-        public void Load(string path)
+        public void Load(object obj, string path)
         {
             if (ConvertFromString.Count == 0)
                 InitTypeHandlers();
@@ -181,7 +177,7 @@ namespace StreamCore.Config
                     var value = match.Groups["Value"].Value;
 
                     // Otherwise, read the value in with the appropriate handler
-                    var fieldInfo = _obj.GetType().GetField(name);
+                    var fieldInfo = obj.GetType().GetField(name);
 
                     // If the fieldType is an enum, replace it with the generic Enum type
                     Type fieldType = fieldInfo.FieldType.IsEnum ? typeof(Enum) : fieldInfo.FieldType;
@@ -197,7 +193,7 @@ namespace StreamCore.Config
                     try
                     {
                         object converted = convertFromString.Invoke(fieldInfo, value);
-                        fieldInfo.SetValue(_obj, converted);
+                        fieldInfo.SetValue(obj, converted);
                     }
                     catch (Exception ex)
                     {
@@ -207,7 +203,7 @@ namespace StreamCore.Config
             }
         }
 
-        public void Save(string path)
+        public void Save(object obj, string path)
         {
             if (ConvertToString.Count == 0)
                 InitTypeHandlers();
@@ -224,7 +220,7 @@ namespace StreamCore.Config
 
             string lastConfigSection = null;
             List<string> serializedClass = new List<string>();
-            foreach (var fieldInfo in _obj.GetType().GetFields())
+            foreach (var fieldInfo in obj.GetType().GetFields())
             {
                 // If the fieldType is an enum, replace it with the generic Enum type
                 Type fieldType = fieldInfo.FieldType.IsEnum ? typeof(Enum) : fieldInfo.FieldType;
@@ -262,7 +258,7 @@ namespace StreamCore.Config
                             comment = configMeta.Comment;
                         }
                     }
-                    valueStr = $"{convertToString.Invoke(fieldInfo, _obj)}{(comment != null ? " //" + comment : "")}";
+                    valueStr = $"{convertToString.Invoke(fieldInfo, obj)}{(comment != null ? " //" + comment : "")}";
                 }
                 catch (Exception ex)
                 {

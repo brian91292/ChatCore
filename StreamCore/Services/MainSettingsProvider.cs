@@ -17,13 +17,13 @@ namespace StreamCore.Services
         {
             _logger = logger;
             _pathProvider = pathProvider;
-            _configSerializer = new ObjectSerializer(this);
-            _configSerializer.Load(Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
+            _configSerializer = new ObjectSerializer();
+            _configSerializer.Load(this, Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
         }
 
         public void Save()
         {
-            _configSerializer.Save(Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
+            _configSerializer.Save(this, Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
         }
 
         private ILogger _logger;

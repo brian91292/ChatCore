@@ -23,7 +23,7 @@ namespace StreamCore.Services
             set
             {
                 _credentials = value;
-                _credentialSerializer.Save(_credentialsPath);
+                _credentialSerializer.Save(_credentials, _credentialsPath);
                 OnCredentialsUpdated?.Invoke(_credentials);
             }
         }
@@ -34,8 +34,8 @@ namespace StreamCore.Services
             _logger = logger;
             _pathProvider = pathProvider;
             _credentialsPath = Path.Combine(_pathProvider.GetDataPath(), "auth.ini");
-            _credentialSerializer = new ObjectSerializer(_credentials);
-            _credentialSerializer.Load(_credentialsPath);
+            _credentialSerializer = new ObjectSerializer();
+            _credentialSerializer.Load(_credentials, _credentialsPath);
         }
 
         private ILogger _logger;

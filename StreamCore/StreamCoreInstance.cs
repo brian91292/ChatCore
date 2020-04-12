@@ -18,6 +18,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
+using StreamCore.Config;
 
 namespace StreamCore
 {
@@ -44,6 +45,7 @@ namespace StreamCore
                         })
                         .AddSingleton<Random>()
                         .AddTransient<HttpClient>()
+                        .AddSingleton<ObjectSerializer>()
                         .AddSingleton<TwitchService>()
                         .AddSingleton<TwitchServiceManager>()
                         .AddSingleton<TwitchMessageParser>()

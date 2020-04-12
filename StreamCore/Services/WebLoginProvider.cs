@@ -31,17 +31,25 @@ namespace StreamCore.Services
             "<html>" +
             "  <head>" +
             "    <title>StreamCore v3 Login</title>" +
+            "    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/spectre.css/0.5.8/spectre.min.css\">" +
             "  </head>" +
             "  <body>" +
-            "    <form method=\"post\" action=\"update\">" +
-            "      <h3>Twitch</h3>" +
-            "        <div>" +
-            "           <input name=\"twitch_oauthtoken\" id=\"say\" placeholder=\"OAuthToken\" value=\"{0}\">" +
-            "        </div><br>" +
-            "        <div>" +
-            "          <button>Save</button>" +
+            "    <main class=\"container flex-centered\">" +
+            "      <form method=\"post\" action=\"update\">" +
+            "        <br/>" +
+            "        <h3 class=\"text-center\">Twitch Login</h3>" +
+            "        <hr/>" +
+            "        <div class=\"form-group\">" +
+            "          <label class=\"form-label text-center\" for=\"say\">OAuth Token</label>" +
+            "          <input class=\"form-input\" name=\"twitch_oauthtoken\" type=\"text\" id=\"say\" placeholder=\"oauth:12abc3defg4p678arw9aq2xasd0gwa43\" value=\"{0}\">" +
             "        </div>" +
-            "    </form>" +
+            "        <div class=\"flex-centered\">" +
+            "          <button class=\"btn\">Save</button>" +
+            "        </div>" +
+            "        <br/>" +
+            "        <a href=\"https://twitchapps.com/tmi/\" target=\"_blank\" class=\"text-center\">Don't know where to find your oauth token? Click Here!</a>" +
+            "      </form>" +
+            "    </main>" +
             "  </body>" +
             "</html>";
 

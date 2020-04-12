@@ -90,7 +90,7 @@ namespace StreamCore.Services.Twitch
             {
                 //_logger.LogInformation("RawMessage: " + rawMessage);
                 _onRawMessageReceivedCallbacks?.InvokeAll(assembly, this, rawMessage);
-                if (_messageParser.ParseRawMessage(rawMessage, _channels, out var parsedMessages))
+                if (_messageParser.ParseRawMessage(rawMessage, _channels, LoggedInUser, out var parsedMessages))
                 {
                     foreach (TwitchMessage twitchMessage in parsedMessages)
                     {

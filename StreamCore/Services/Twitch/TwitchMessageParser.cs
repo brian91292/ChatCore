@@ -50,7 +50,7 @@ namespace StreamCore.Services.Twitch
         /// <param name="rawMessage">The raw message sent from Twitch</param>
         /// <param name="parsedMessages">A list of chat messages that were parsed from the rawMessage</param>
         /// <returns>True if parsedMessages.Count > 0</returns>
-        public bool ParseRawMessage(string rawMessage, ConcurrentDictionary<string, IChatChannel> channelInfo, out IChatMessage[] parsedMessages)
+        public bool ParseRawMessage(string rawMessage, ConcurrentDictionary<string, IChatChannel> channelInfo, IChatUser loggedInUser, out IChatMessage[] parsedMessages)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -279,39 +279,68 @@ namespace StreamCore.Services.Twitch
                         IsActionMessage = isActionMessage,
                         IsSystemMessage = messageType == "NOTICE" || messageType == "USERNOTICE",
                         IsHighlighted = isHighlighted,
+                        IsPing = !string.IsNullOrEmpty(messageText) && loggedInUser != null && messageText.Contains($"@{loggedInUser.Name}", StringComparison.OrdinalIgnoreCase),
                         Metadata = messageMeta,
                         Type = messageType
                     };
 
-                    if (messageType == "USERNOTICE")
+                    if(messageMeta.TryGetValue("msg-id", out var msgIdValue))
                     {
-                        // USERNOTICE messages (always?) contain a system message, so try to split it out into its own message and queue it up before the actual message from the user
-                        if (messageMeta.TryGetValue("system-msg", out var systemMsgText))
+                        TwitchMessage systemMessage = null;
+                        _logger.LogInformation($"msg-id: {msgIdValue}");
+                        _logger.LogInformation($"Message: {match.Value}");
+                        switch(msgIdValue)
                         {
-                            _logger.LogInformation(match.Value);
-                            if (messageMeta.TryGetValue("msg-param-sub-plan", out var subPlanName))
-                            {
-                                var systemMessage = (TwitchMessage)newMessage.Clone();
-                                systemMsgText = systemMsgText.Replace(@"\s", " ");
-                                if (subPlanName == "Prime")
-                                {
-                                    systemMessage.Message = $"👑  {systemMsgText}";
-                                }
-                                else
-                                {
-                                    systemMessage.Message = $"⭐  {systemMsgText}";
-                                }
-                                systemMessage.IsHighlighted = true;
-                                systemMessage.Emotes = _emojiParser.FindEmojis(systemMessage.Message).ToArray();
+                            case "skip-subs-mode-message":
+                                systemMessage = (TwitchMessage)newMessage.Clone();
+                                systemMessage.Message = "Redeemed Send a Message In Sub-Only Mode";
+                                systemMessage.IsHighlighted = false;
+                                systemMessage.IsSystemMessage = true;
+                                systemMessage.Emotes = new IChatEmote[0];
                                 messages.Add(systemMessage);
-                            }
+                                break;
+                            case "highlighted-message":
+                                systemMessage = (TwitchMessage)newMessage.Clone();
+                                systemMessage.Message = "Redeemed Highlight My Message";
+                                systemMessage.IsHighlighted = true;
+                                systemMessage.IsSystemMessage = true;
+                                systemMessage.Emotes = new IChatEmote[0];
+                                messages.Add(systemMessage);
+                                break;
+                            case "sub":
+                            case "resub":
+                                if (messageMeta.TryGetValue("system-msg", out var systemMsgText))
+                                {
+                                    //_logger.LogInformation($"Message: {match.Value}");
+                                    if (messageMeta.TryGetValue("msg-param-sub-plan", out var subPlanName))
+                                    {
+                                        systemMessage = (TwitchMessage)newMessage.Clone();
+                                        systemMsgText = systemMsgText.Replace(@"\s", " ");
+                                        if (subPlanName == "Prime")
+                                        {
+                                            systemMessage.Message = $"👑  {systemMsgText}";
+                                        }
+                                        else
+                                        {
+                                            systemMessage.Message = $"⭐  {systemMsgText}";
+                                        }
+                                        systemMessage.IsHighlighted = true;
+                                        systemMessage.Emotes = _emojiParser.FindEmojis(systemMessage.Message).ToArray();
+                                        messages.Add(systemMessage);
+                                    }
+                                }
+                                newMessage.IsSystemMessage = false;
+                                if (string.IsNullOrEmpty(newMessage.Message))
+                                {
+                                    // If there was no actual message, then we only need to queue up the system message
+                                    continue;
+                                }
+                                break;
                         }
-                        newMessage.IsSystemMessage = false;
-                        if (string.IsNullOrEmpty(newMessage.Message))
-                        {
-                            // If this USERNOTICE message had no actual message, then we only need to queue up the system message
-                            continue;
-                        }
+                    }
+                    else
+                    {
+                        //_logger.LogInformation($"Message: {match.Value}");
                     }
 
                     //_logger.LogInformation($"RawMsg: {rawMessage}");

@@ -24,6 +24,11 @@
             True if the message should be highlighted (pings, subscriber notifications, etc)
             </summary>
         </member>
+        <member name="P:StreamCore.Interfaces.IChatMessage.IsPing">
+            <summary>
+            True if the logged in user was tagged/pinged in this message.
+            </summary>
+        </member>
         <member name="P:StreamCore.Interfaces.IChatMessage.Message">
             <summary>
             The exact message the user sent into the chat, *with* any custom formatting applied by the chat service.
@@ -109,7 +114,7 @@
             If FollowersOnly is true, this specifies the number of minutes a user must be following before they can chat.
             </summary>
         </member>
-        <member name="M:StreamCore.Services.Twitch.TwitchMessageParser.ParseRawMessage(System.String,System.Collections.Concurrent.ConcurrentDictionary{System.String,StreamCore.Interfaces.IChatChannel},StreamCore.Interfaces.IChatMessage[]@)">
+        <member name="M:StreamCore.Services.Twitch.TwitchMessageParser.ParseRawMessage(System.String,System.Collections.Concurrent.ConcurrentDictionary{System.String,StreamCore.Interfaces.IChatChannel},StreamCore.Interfaces.IChatUser,StreamCore.Interfaces.IChatMessage[]@)">
             <summary>
             Takes a raw Twitch message and parses it into an IChatMessage
             </summary>

@@ -248,7 +248,7 @@ namespace StreamCore.Services.Twitch
                                         newTier.Color = tier["color"].Value;
                                         newTier.CanCheer = tier["can_cheer"].AsBool;
                                         newTier.Uri = $"https://d3aqoihi2n8ty8.cloudfront.net/actions/{prefix}/dark/animated/{newTier.MinBits}/4.gif";
-                                        _logger.LogInformation($"Cheermote: {prefix}{newTier.MinBits}, URI: {newTier.Uri}");
+                                        //_logger.LogInformation($"Cheermote: {prefix}{newTier.MinBits}, URI: {newTier.Uri}");
                                         cheermote.Tiers.Add(newTier);
                                     }
                                     cheermote.Prefix = prefix;

@@ -24,6 +24,10 @@ namespace StreamCore.Interfaces
         /// </summary>
         bool IsHighlighted { get; }
         /// <summary>
+        /// True if the logged in user was tagged/pinged in this message.
+        /// </summary>
+        bool IsPing { get; }
+        /// <summary>
         /// The exact message the user sent into the chat, *with* any custom formatting applied by the chat service.
         /// </summary>
         string Message { get; }

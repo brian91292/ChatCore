@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using StreamCore.Config;
 using StreamCore.Interfaces;
-using StreamCore;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,17 +11,19 @@ namespace StreamCore.Services
     public class MainSettingsProvider : ISettingsProvider
     {
         public bool RunWebApp { get; set; } = true;
+        private ObjectSerializer _configSerializer;
 
         public MainSettingsProvider(ILogger<MainSettingsProvider> logger, IPathProvider pathProvider)
         {
             _logger = logger;
             _pathProvider = pathProvider;
-            ObjectSerializer.Load(this, Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
+            _configSerializer = new ObjectSerializer(this);
+            _configSerializer.Load(Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
         }
 
         public void Save()
         {
-            ObjectSerializer.Save(this, Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
+            _configSerializer.Save(Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
         }
 
         private ILogger _logger;

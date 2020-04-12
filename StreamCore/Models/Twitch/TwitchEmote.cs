@@ -13,7 +13,13 @@ namespace StreamCore.Models.Twitch
         public int StartIndex { get; internal set; }
         public int EndIndex { get; internal set; }
         public bool IsAnimated { get; internal set; }
-
-        //public EmoteInstance[] Instances { get; internal set; }
+        /// <summary>
+        /// The number of bits associated with this emote (probably a cheermote)
+        /// </summary>
+        public int Bits { get; internal set; }
+        /// <summary>
+        /// If there are bits associated with this emote, this is the color the bits text should be.
+        /// </summary>
+        public string Color { get; internal set; }
     }
 }

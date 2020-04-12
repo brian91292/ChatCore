@@ -84,6 +84,16 @@
             Callback that occurs when a specific chat message is cleared. Argument is the message id to be cleared.
             </summary>
         </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchEmote.Bits">
+            <summary>
+            The number of bits associated with this emote (probably a cheermote)
+            </summary>
+        </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchEmote.Color">
+            <summary>
+            If there are bits associated with this emote, this is the color the bits text should be.
+            </summary>
+        </member>
         <member name="P:StreamCore.Models.Twitch.TwitchMessage.Type">
             <summary>
             The IRC message type for this TwitchMessage

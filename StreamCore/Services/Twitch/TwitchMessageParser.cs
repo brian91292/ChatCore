@@ -36,11 +36,8 @@ namespace StreamCore.Services.Twitch
             {
                 // Generate a psuedo-random color based on the users display name
                 Random rand = new Random(nameHash);
-
-                // Convert it to a pastel color
-                System.Drawing.Color pastelColor = ColorUtils.GetPastelShade(System.Drawing.Color.FromArgb(255, rand.Next(255), rand.Next(255), rand.Next(255)));
-                int argb = ((int)pastelColor.R << 16) + ((int)pastelColor.G << 8) + (int)pastelColor.B;
-                string colorString = String.Format("#{0:X6}", argb) + "FF";
+                int argb = (rand.Next(255) << 16) + (rand.Next(255) << 8) + rand.Next(255);
+                string colorString = string.Format("#{0:X6}FF", argb);
                 _userColors.Add(nameHash, colorString);
                 nameColor = colorString;
             }
@@ -93,6 +90,7 @@ namespace StreamCore.Services.Twitch
                     IChatBadge[] userBadges = new IChatBadge[0];
                     List<IChatEmote> messageEmotes = new List<IChatEmote>();
                     TwitchRoomstate messageRoomstate = null;
+                    HashSet<string> foundTwitchEmotes = new HashSet<string>();
 
                     bool isActionMessage = false, isHighlighted = false;
                     if (messageText.StartsWith("\u0001ACTION"))
@@ -106,6 +104,8 @@ namespace StreamCore.Services.Twitch
                         dict[m.Groups["Tag"].Value] = m.Groups["Value"].Value;
                         return dict;
                     }));
+
+                    int messageBits = messageMeta.TryGetValue("bits", out var bitsString) && int.TryParse(bitsString, out var bitsInt) ? bitsInt : 0;
 
                     if (messageMeta.TryGetValue("badges", out var badgeStr))
                     {
@@ -125,81 +125,114 @@ namespace StreamCore.Services.Twitch
                         }).ToArray();
                     }
 
-                    if (messageType == "PRIVMSG" || messageType == "NOTIFY")
+                    if (messageType == "PRIVMSG" || messageType == "NOTIFY" || messageType == "USERNOTICE")
                     {
-                        if (messageMeta.TryGetValue("emotes", out var emoteStr))
+                        if (messageText.Length > 0)
                         {
-                            // Parse all the normal Twitch emotes
-                            messageEmotes = emoteStr.Split('/').Aggregate(new List<IChatEmote>(), (emoteList, emoteInstanceString) =>
+                            if (messageMeta.TryGetValue("emotes", out var emoteStr))
                             {
-                                var emoteParts = emoteInstanceString.Split(':');
-                                foreach (var instanceString in emoteParts[1].Split(','))
+                                // Parse all the normal Twitch emotes
+                                messageEmotes = emoteStr.Split('/').Aggregate(new List<IChatEmote>(), (emoteList, emoteInstanceString) =>
                                 {
-                                    var instanceParts = instanceString.Split('-');
-                                    int startIndex = int.Parse(instanceParts[0]);
-                                    int endIndex = int.Parse(instanceParts[1]);
-
-                                    if (startIndex >= messageText.Length)
+                                    var emoteParts = emoteInstanceString.Split(':');
+                                    foreach (var instanceString in emoteParts[1].Split(','))
                                     {
-                                        _logger.LogWarning($"Start index is greater than message length! RawMessage: {match.Value}, InstanceString: {instanceString}, EmoteStr: {emoteStr}, StartIndex: {startIndex}, MessageLength: {messageText.Length}, IsActionMessage: {isActionMessage}");
-                                    }
+                                        var instanceParts = instanceString.Split('-');
+                                        int startIndex = int.Parse(instanceParts[0]);
+                                        int endIndex = int.Parse(instanceParts[1]);
 
-                                    emoteList.Add(new TwitchEmote()
-                                    {
-                                        Id = $"TwitchEmote_{emoteParts[0]}",
-                                        Name = endIndex >= messageText.Length ? messageText.Substring(startIndex) : messageText.Substring(startIndex, endIndex - startIndex + 1),
-                                        Uri = $"https://static-cdn.jtvnw.net/emoticons/v1/{emoteParts[0]}/3.0",
-                                        StartIndex = startIndex,
-                                        EndIndex = endIndex,
-                                        IsAnimated = false
-                                    });
-                                }
-                                return emoteList;
-                            });
-                        }
-
-                        // Parse all the third party (BTTV, FFZ, etc) emotes
-                        StringBuilder currentWord = new StringBuilder();
-                        for (int i = 0; i <= messageText.Length; i++)
-                        {
-                            if (i == messageText.Length || char.IsWhiteSpace(messageText[i]))
-                            {
-                                if (currentWord.Length > 0)
-                                {
-                                    var lastWord = currentWord.ToString();
-                                    int startIndex = i - lastWord.Length;
-                                    int endIndex = i - 1;
-
-                                    if (_twitchDataProvider.TryGetThirdPartyEmote(lastWord, messageChannelName, out var imageData))
-                                    {
-                                        messageEmotes.Add(new TwitchEmote()
+                                        if (startIndex >= messageText.Length)
                                         {
-                                            Id = $"{imageData.Type}_{lastWord}",
-                                            Name = lastWord,
-                                            Uri = imageData.Uri,
+                                            _logger.LogWarning($"Start index is greater than message length! RawMessage: {match.Value}, InstanceString: {instanceString}, EmoteStr: {emoteStr}, StartIndex: {startIndex}, MessageLength: {messageText.Length}, IsActionMessage: {isActionMessage}");
+                                        }
+                                        string emoteName = messageText.Substring(startIndex, endIndex - startIndex + 1);
+                                        foundTwitchEmotes.Add(emoteName);
+                                        emoteList.Add(new TwitchEmote()
+                                        {
+                                            Id = $"TwitchEmote_{emoteParts[0]}",
+                                            Name = emoteName,//endIndex >= messageText.Length ? messageText.Substring(startIndex) : ,
+                                            Uri = $"https://static-cdn.jtvnw.net/emoticons/v1/{emoteParts[0]}/3.0",
                                             StartIndex = startIndex,
                                             EndIndex = endIndex,
-                                            IsAnimated = imageData.IsAnimated
+                                            IsAnimated = false,
+                                            Bits = 0,
+                                            Color = ""
                                         });
                                     }
+                                    return emoteList;
+                                });
+                            }
 
-                                    currentWord.Clear();
+                            // Parse all the third party (BTTV, FFZ, etc) emotes
+                            StringBuilder currentWord = new StringBuilder();
+                            for (int i = 0; i <= messageText.Length; i++)
+                            {
+                                if (i == messageText.Length || char.IsWhiteSpace(messageText[i]))
+                                {
+                                    if (currentWord.Length > 0)
+                                    {
+                                        var lastWord = currentWord.ToString();
+                                        int startIndex = i - lastWord.Length;
+                                        int endIndex = i - 1;
+
+
+
+                                        if (!foundTwitchEmotes.Contains(lastWord))
+                                        {
+
+                                            // Make sure we haven't already matched a Twitch emote with the same string, just incase the user has a BTTV/FFZ emote with the same name
+                                            if (messageBits > 0 && _twitchDataProvider.TryGetCheermote(lastWord, messageChannelName, out var cheermoteData, out var numBits) && numBits > 0)
+                                            {
+                                                //_logger.LogInformation($"Got cheermote! Total message bits: {messageBits}");
+                                                var tier = cheermoteData.GetTier(numBits);
+                                                if (tier != null)
+                                                {
+                                                    messageEmotes.Add(new TwitchEmote()
+                                                    {
+                                                        Id = $"TwitchCheermote_{cheermoteData.Prefix}{tier.MinBits}",
+                                                        Name = lastWord,
+                                                        Uri = tier.Uri,
+                                                        StartIndex = startIndex,
+                                                        EndIndex = endIndex,
+                                                        IsAnimated = true,
+                                                        Bits = numBits,
+                                                        Color = tier.Color
+                                                    });
+                                                }
+                                            }
+                                            else if (_twitchDataProvider.TryGetThirdPartyEmote(lastWord, messageChannelName, out var emoteData))
+                                            {
+                                                messageEmotes.Add(new TwitchEmote()
+                                                {
+                                                    Id = $"{emoteData.Type}_{lastWord}",
+                                                    Name = lastWord,
+                                                    Uri = emoteData.Uri,
+                                                    StartIndex = startIndex,
+                                                    EndIndex = endIndex,
+                                                    IsAnimated = emoteData.IsAnimated,
+                                                    Bits = 0,
+                                                    Color = ""
+                                                });
+                                            }
+                                        }
+                                        currentWord.Clear();
+                                    }
+                                }
+                                else
+                                {
+                                    currentWord.Append(messageText[i]);
                                 }
                             }
-                            else
+
+                            // Parse all emojis
+                            messageEmotes.AddRange(_emojiParser.FindEmojis(messageText));
+
+                            // Sort the emotes in descending order to make replacing them in the string later on easier
+                            messageEmotes.Sort((a, b) =>
                             {
-                                currentWord.Append(messageText[i]);
-                            }
+                                return b.StartIndex - a.StartIndex;
+                            });
                         }
-
-                        // Parse all emojis
-                        messageEmotes.AddRange(_emojiParser.FindEmojis(messageText));
-
-                        // Sort the emotes in descending order to make replacing them in the string later on easier
-                        messageEmotes.Sort((a, b) =>
-                        {
-                            return b.StartIndex - a.StartIndex;
-                        });
                     }
                     else if (messageType == "ROOMSTATE")
                     {
@@ -253,12 +286,25 @@ namespace StreamCore.Services.Twitch
                     if (messageType == "USERNOTICE")
                     {
                         // USERNOTICE messages (always?) contain a system message, so try to split it out into its own message and queue it up before the actual message from the user
-                        if (messageMeta.TryGetValue("system-msg", out var systemMsg))
+                        if (messageMeta.TryGetValue("system-msg", out var systemMsgText))
                         {
-                            var systemMessage = (TwitchMessage)newMessage.Clone();
-                            systemMessage.Message = systemMsg.Replace(@"\s", " ");
-                            systemMessage.IsHighlighted = true;
-                            messages.Add(systemMessage);
+                            _logger.LogInformation(match.Value);
+                            if (messageMeta.TryGetValue("msg-param-sub-plan", out var subPlanName))
+                            {
+                                var systemMessage = (TwitchMessage)newMessage.Clone();
+                                systemMsgText = systemMsgText.Replace(@"\s", " ");
+                                if (subPlanName == "Prime")
+                                {
+                                    systemMessage.Message = $"👑  {systemMsgText}";
+                                }
+                                else
+                                {
+                                    systemMessage.Message = $"⭐  {systemMsgText}";
+                                }
+                                systemMessage.IsHighlighted = true;
+                                systemMessage.Emotes = _emojiParser.FindEmojis(systemMessage.Message).ToArray();
+                                messages.Add(systemMessage);
+                            }
                         }
                         newMessage.IsSystemMessage = false;
                         if (string.IsNullOrEmpty(newMessage.Message))

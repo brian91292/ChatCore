@@ -5,6 +5,7 @@ using StreamCore.SimpleJSON;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,10 +17,13 @@ namespace StreamCore.Services.Twitch
         public Dictionary<string, TwitchImageData> TwitchBadges;
         public Dictionary<string, TwitchImageData> BTTVEmotes;
         public Dictionary<string, TwitchImageData> FFZEmotes;
+        public Dictionary<string, TwitchCheermoteData> TwitchCheermotes;
     }
 
     public class TwitchDataProvider
     {
+        private const string TWITCH_CLIENT_ID = "jg6ij5z8mf8jr8si22i5uq8tobnmde";
+
         public TwitchDataProvider(ILogger<TwitchDataProvider> logger, HttpClient httpClient)
         {
             _logger = logger;
@@ -31,6 +35,7 @@ namespace StreamCore.Services.Twitch
 
         internal Dictionary<string, TwitchChannelResource> TwitchChannelResources = new Dictionary<string, TwitchChannelResource>();
         internal Dictionary<string, TwitchImageData> TwitchGlobalBadges;
+
         internal Dictionary<string, TwitchImageData> BTTVGlobalEmotes;
         internal Dictionary<string, TwitchImageData> FFZGlobalEmotes;
 
@@ -78,7 +83,7 @@ namespace StreamCore.Services.Twitch
                                 }
                             }
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             _logger.LogError(ex, $"An exception occurred while parsing Twitch global badges");
                         }
@@ -134,7 +139,7 @@ namespace StreamCore.Services.Twitch
                                     goto EXIT;
                                 }
 
-                                foreach(JSONObject o in json["sets"]["3"]["emoticons"].AsArray)
+                                foreach (JSONObject o in json["sets"]["3"]["emoticons"].AsArray)
                                 {
                                     JSONObject urls = o["urls"].AsObject;
                                     string uri = urls[urls.Count - 1].Value;
@@ -148,6 +153,7 @@ namespace StreamCore.Services.Twitch
                         {
                             _logger.LogError(ex, $"An exception occurred while parsing FFZ global emotes");
                         }
+
                     EXIT:
                         _logger.LogInformation("Finished caching global emotes.");
                     });
@@ -164,11 +170,13 @@ namespace StreamCore.Services.Twitch
                     _logger.LogInformation($"Requesting channel badges for {channel.Id}");
 
                     var newChannelBadges = new Dictionary<string, TwitchImageData>();
+                    var newChannelCheermotes = new Dictionary<string, TwitchCheermoteData>();
                     var newBTTVEmotes = new Dictionary<string, TwitchImageData>();
                     var newFFZEmotes = new Dictionary<string, TwitchImageData>();
                     var newChannelResources = new TwitchChannelResource()
                     {
                         TwitchBadges = newChannelBadges,
+                        TwitchCheermotes = newChannelCheermotes,
                         BTTVEmotes = newBTTVEmotes,
                         FFZEmotes = newFFZEmotes
                     };
@@ -184,13 +192,13 @@ namespace StreamCore.Services.Twitch
                                 {
                                     // TODO: figure out why this is failing sometimes
                                     _logger.LogError($"Failed to receive channel badge data. Status: {resp.StatusCode}, RoomId: {channel.AsTwitchChannel().Roomstate.RoomId}, Error: {resp.Content.ReadAsStringAsync()}");
-                                    goto BTTV;
+                                    goto CHEERMOTES;
                                 }
                                 JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
                                 if (!json["badge_sets"].IsObject)
                                 {
                                     _logger.LogError("badge_sets was not an object.");
-                                    goto BTTV;
+                                    goto CHEERMOTES;
                                 }
                                 foreach (KeyValuePair<string, JSONNode> kvp in json["badge_sets"])
                                 {
@@ -206,9 +214,52 @@ namespace StreamCore.Services.Twitch
                                 }
                             }
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             _logger.LogError(ex, $"An exception occurred while parsing Twitch channel badges for {channel.Id}");
+                        }
+
+                    CHEERMOTES:
+                        try
+                        {
+                            using (HttpRequestMessage msg = new HttpRequestMessage(HttpMethod.Get, $"https://api.twitch.tv/v5/bits/actions?client_id={TWITCH_CLIENT_ID}&channel_id={channel.AsTwitchChannel().Roomstate.RoomId}&include_sponsored=1"))
+                            {
+                                var resp = await _httpClient.SendAsync(msg);
+                                if (!resp.IsSuccessStatusCode)
+                                {
+                                    // TODO: figure out why this is failing sometimes
+                                    _logger.LogError($"Failed to receive channel cheermote data. Status: {resp.StatusCode}, RoomId: {channel.AsTwitchChannel().Roomstate.RoomId}, Error: {resp.Content.ReadAsStringAsync()}");
+                                    goto BTTV;
+                                }
+                                JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
+                                if (!json["actions"].IsArray)
+                                {
+                                    _logger.LogError("badge_sets was not an object.");
+                                    goto BTTV;
+                                }
+                                foreach (JSONNode node in json["actions"].AsArray.Values)
+                                {
+                                    TwitchCheermoteData cheermote = new TwitchCheermoteData();
+                                    string prefix = node["prefix"].Value.ToLower();
+                                    foreach (JSONNode tier in node["tiers"].Values)
+                                    {
+                                        CheermoteTier newTier = new CheermoteTier();
+                                        newTier.MinBits = tier["min_bits"].AsInt;
+                                        newTier.Color = tier["color"].Value;
+                                        newTier.CanCheer = tier["can_cheer"].AsBool;
+                                        newTier.Uri = $"https://d3aqoihi2n8ty8.cloudfront.net/actions/{prefix}/dark/animated/{newTier.MinBits}/4.gif";
+                                        _logger.LogInformation($"Cheermote: {prefix}{newTier.MinBits}, URI: {newTier.Uri}");
+                                        cheermote.Tiers.Add(newTier);
+                                    }
+                                    cheermote.Prefix = prefix;
+                                    cheermote.Tiers = cheermote.Tiers.OrderBy(t => t.MinBits).ToList();
+                                    newChannelCheermotes.Add(prefix, cheermote);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"An exception occurred while parsing Twitch channel cheermotes for {channel.Id}");
                         }
 
                     BTTV:
@@ -256,7 +307,7 @@ namespace StreamCore.Services.Twitch
                                 }
 
                                 JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                                if(!json["sets"].IsObject)
+                                if (!json["sets"].IsObject)
                                 {
                                     _logger.LogError("sets was not an object");
                                     goto EXIT;
@@ -319,6 +370,40 @@ namespace StreamCore.Services.Twitch
             return isEmote;
         }
 
+        internal bool TryGetCheermote(string word, string channel, out TwitchCheermoteData data, out int numBits)
+        {
+            numBits = 0;
+            data = null;
+            if (channel == null || !TwitchChannelResources.TryGetValue(channel, out var channelResources))
+            {
+                return false;
+            }
+            if (!char.IsLetter(word[0]) || !char.IsDigit(word[word.Length - 1]))
+            {
+                return false;
+            }
+            int prefixLength = -1;
+            for (int i = word.Length - 1; i > 0; i--)
+            {
+                if (!char.IsDigit(word[i]))
+                {
+                    prefixLength = i + 1;
+                    break;
+                }
+            }
+            if (prefixLength == -1)
+            {
+                return false;
+            }
+            string prefix = word.Substring(0, prefixLength).ToLower();
+            if (!channelResources.TwitchCheermotes.TryGetValue(prefix, out data))
+            {
+                return false;
+            }
+            numBits = int.TryParse(word.Substring(prefixLength), out var intVal) ? intVal : 0;
+            return true;
+        }
+
         public void TryReleaseChannelResources(IChatChannel channel)
         {
             lock (_lock)
@@ -336,14 +421,14 @@ namespace StreamCore.Services.Twitch
         internal bool TryGetBadgeInfo(string badgeId, string channel, out TwitchImageData badge)
         {
             badge = null;
-            if(!string.IsNullOrEmpty(channel))
+            if (!string.IsNullOrEmpty(channel))
             {
-                if(TwitchChannelResources.TryGetValue(channel, out var channelResources) && channelResources.TwitchBadges.TryGetValue(badgeId, out var channelBadge))
+                if (TwitchChannelResources.TryGetValue(channel, out var channelResources) && channelResources.TwitchBadges.TryGetValue(badgeId, out var channelBadge))
                 {
                     badge = channelBadge;
                 }
             }
-            if(badge == null && TwitchGlobalBadges != null && TwitchGlobalBadges.TryGetValue(badgeId, out var globalBadge))
+            if (badge == null && TwitchGlobalBadges != null && TwitchGlobalBadges.TryGetValue(badgeId, out var globalBadge))
             {
                 badge = globalBadge;
             }

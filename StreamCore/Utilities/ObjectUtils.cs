@@ -7,7 +7,7 @@ namespace StreamCore
 {
     public static class ObjectUtils
     {
-        public static object GetField(this object obj, string fieldName)
+        public static object GetFieldValue(this object obj, string fieldName)
         {
             return obj.GetType().GetField(fieldName).GetValue(obj);
         }

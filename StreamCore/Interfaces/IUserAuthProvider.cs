@@ -5,10 +5,12 @@ using System.Text;
 
 namespace StreamCore.Interfaces
 {
-    public interface IUserAuthManager
+    public interface IUserAuthProvider
     {
         event Action<LoginCredentials> OnCredentialsUpdated;
 
-        LoginCredentials Credentials { get; set; }
+        LoginCredentials Credentials { get; }
+
+        void Save();
     }
 }

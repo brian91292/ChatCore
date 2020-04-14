@@ -1,0 +1,63 @@
+<html>
+<head>
+    <title>StreamCore v3 Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectre.css/0.5.8/spectre.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
+</head>
+<body>
+    <main class="container flex-centered">
+        <form id="form" method="post">
+            <br />
+            <h3 class="text-center">Twitch Login</h3>
+            <hr />
+            <div class="form-group">
+                <label class="form-label text-center" for="say">OAuth Token</label>
+                <input class="form-input" name="twitch_oauthtoken" type="text" id="say" placeholder="oauth:12abc3defg4p678arw9aq2xasd0gwa43" value="{TwitchOAuthToken}">
+                <a href="https://twitchapps.com/tmi/" target="_blank" class="text-center">Don't know where to find your oauth token? Click Here!</a>
+            </div>
+            <br />
+            <h3 class="text-center">Channels</h3>
+            <hr />
+            <div class="flex-centered">
+                <button type="button" class="btn btn-primary btn-action" onclick="addChannel()"><i class="icon icon-plus"></i></button>
+            </div>
+            <br />
+            <div class="flex-centered">
+                <div class="form-group" id="channel-container">
+                    {TwitchChannelHtml}
+                </div>
+            </div>
+            <hr />
+            <div class="flex-centered">
+                <button class="btn">Save</button>
+            </div>
+            <br />
+        </form>
+    </main>
+
+    <script>
+        let idCounter = 0
+
+        function addChannel() {
+            let container = document.getElementById("channel-container")
+            let channelId = "twitch_channel_" + idCounter
+            let div = document.createElement("div")
+            div.className = "input-group"
+            div.id = channelId
+            div.innerHTML = "<input type=\"text\" name=\"twitch_channel\" class=\"form-input\" placeholder=\"Enter Channel Name\">" +
+                "<button type=\"button\" class=\"btn btn-primary btn-action\" onclick=\"removeChannel(" + channelId + ")\"><i class=\"icon icon-minus\"></i></button>" //this shouldn't work, but it does
+            container.appendChild(div)
+
+            idCounter++
+        }
+
+        function removeChannel(channelId) {
+            let container = document.getElementById("channel-container")
+            let channel = document.getElementById(channelId.id)
+            container.removeChild(channel)
+        }
+    </script>
+
+</body>
+</html>
+

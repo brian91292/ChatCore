@@ -75,7 +75,7 @@ namespace StreamCore
                         )
                         .AddSingleton<IPathProvider, PathProvider>()
                         .AddSingleton<ISettingsProvider, MainSettingsProvider>()
-                        .AddSingleton<IUserAuthManager, UserAuthManager>()
+                        .AddSingleton<IUserAuthProvider, UserAuthProvider>()
                         .AddSingleton<IWebLoginProvider, WebLoginProvider>()
                         .AddSingleton<IEmojiParser, FrwTwemojiParser>()
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();

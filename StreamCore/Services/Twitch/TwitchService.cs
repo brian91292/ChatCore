@@ -27,7 +27,7 @@ namespace StreamCore.Services.Twitch
             remove => _onRawMessageReceivedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, TwitchDataProvider twitchDataProvider, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthManager authManager, ISettingsProvider settingsProvider, Random rand)
+        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, TwitchDataProvider twitchDataProvider, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthProvider authManager, ISettingsProvider settingsProvider, Random rand)
         {
             _logger = logger;
             _messageParser = messageParser;
@@ -49,7 +49,6 @@ namespace StreamCore.Services.Twitch
 
         private void _authManager_OnCredentialsUpdated(LoginCredentials credentials)
         {
-            _logger.LogInformation($"Twitch_OAuthToken: {credentials.Twitch_OAuthToken}");
             if (_isStarted)
             {
                 Start(true);
@@ -61,12 +60,12 @@ namespace StreamCore.Services.Twitch
         private TwitchDataProvider _twitchDataProvider;
         private IWebSocketService _websocketService;
         private IWebLoginProvider _webLoginProvider;
-        private IUserAuthManager _authManager;
+        private IUserAuthProvider _authManager;
         private ISettingsProvider _settingsProvider;
         private Random _rand;
         private bool _isStarted = false;
         private string _anonUsername;
-        private object _messageReceivedLock = new object();
+        private object _messageReceivedLock = new object(), _initLock = new object();
         private string _loggedInUsername;
 
         private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? _anonUsername : "@"; }
@@ -74,14 +73,33 @@ namespace StreamCore.Services.Twitch
 
         internal void Start(bool forceReconnect = false)
         {
-            _isStarted = true;
-            _websocketService.Connect("wss://irc-ws.chat.twitch.tv:443", forceReconnect);
+            if(forceReconnect)
+            {
+                Stop();
+            }
+            lock (_initLock)
+            {
+                if (!_isStarted)
+                {
+                    _isStarted = true;
+                    _websocketService.Connect("wss://irc-ws.chat.twitch.tv:443", forceReconnect);
+                }
+            }
         }
 
         internal void Stop()
         {
-            _isStarted = false;
-            _websocketService.Disconnect();
+            lock (_initLock)
+            {
+                if (_isStarted)
+                {
+                    _isStarted = false;
+                    _channels.Clear();
+                    LoggedInUser = null;
+                    _loggedInUsername = null;
+                    _websocketService.Disconnect();
+                }
+            }
         }
 
         private void _websocketService_OnMessageReceived(Assembly assembly, string rawMessage)
@@ -111,6 +129,10 @@ namespace StreamCore.Services.Twitch
                                 _logger.LogInformation($"Logged into Twitch as {_loggedInUsername}");
                                 _websocketService.ReconnectDelay = 500;
                                 _onLoginCallbacks?.InvokeAll(assembly, this, _logger);
+                                foreach (var channel in _authManager.Credentials.Twitch_Channels_Array)
+                                {
+                                    JoinChannel(channel);
+                                }
                                 continue;
                             case "NOTICE":
                                 switch (twitchMessage.Message)
@@ -126,7 +148,8 @@ namespace StreamCore.Services.Twitch
                                 _onTextMessageReceivedCallbacks?.InvokeAll(assembly, this, twitchMessage, _logger);
                                 continue;
                             case "JOIN":
-                                if (twitchMessage.Sender.Name == _userName)
+                                //_logger.LogInformation($"{twitchMessage.Sender.Name} JOINED {twitchMessage.Channel.Id}. LoggedInuser: {LoggedInUser.Name}");
+                                if (twitchMessage.Sender.Name == _loggedInUsername)
                                 {
                                     if (!_channels.ContainsKey(twitchMessage.Channel.Id))
                                     {
@@ -137,7 +160,8 @@ namespace StreamCore.Services.Twitch
                                 }
                                 continue;
                             case "PART":
-                                if (twitchMessage.Sender.Name == _userName)
+                                //_logger.LogInformation($"{twitchMessage.Sender.Name} PARTED {twitchMessage.Channel.Id}. LoggedInuser: {LoggedInUser.Name}");
+                                if (twitchMessage.Sender.Name == _loggedInUsername)
                                 {
                                     if (_channels.TryRemove(twitchMessage.Channel.Id, out var channel))
                                     {

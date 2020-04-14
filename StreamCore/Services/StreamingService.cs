@@ -30,7 +30,6 @@ namespace StreamCore.Services
             }
         }
 
-
         private ILogger _logger;
         private IList<IStreamingService> _streamingServices;
         private object _invokeLock = new object();

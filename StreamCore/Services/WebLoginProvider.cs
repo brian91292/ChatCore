@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,92 +16,98 @@ namespace StreamCore.Services
 {
     public class WebLoginProvider : IWebLoginProvider
     {
-        public WebLoginProvider(ILogger<WebLoginProvider> logger, IUserAuthManager authManager)
+        public WebLoginProvider(ILogger<WebLoginProvider> logger, IUserAuthProvider authManager, ISettingsProvider settings)
         {
             _logger = logger;
             _authManager = authManager;
+            _settings = settings;
         }
 
         private ILogger _logger;
-        private IUserAuthManager _authManager;
+        private IUserAuthProvider _authManager;
+        private ISettingsProvider _settings;
         private HttpListener _listener;
         private CancellationTokenSource _cancellationToken;
-
-        public static string pageData =
-            "<!DOCTYPE>" +
-            "<html>" +
-            "  <head>" +
-            "    <title>StreamCore v3 Login</title>" +
-            "    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/spectre.css/0.5.8/spectre.min.css\">" +
-            "  </head>" +
-            "  <body>" +
-            "    <main class=\"container flex-centered\">" +
-            "      <form method=\"post\" action=\"update\">" +
-            "        <br/>" +
-            "        <h3 class=\"text-center\">Twitch Login</h3>" +
-            "        <hr/>" +
-            "        <div class=\"form-group\">" +
-            "          <label class=\"form-label text-center\" for=\"say\">OAuth Token</label>" +
-            "          <input class=\"form-input\" name=\"twitch_oauthtoken\" type=\"text\" id=\"say\" placeholder=\"oauth:12abc3defg4p678arw9aq2xasd0gwa43\" value=\"{0}\">" +
-            "        </div>" +
-            "        <div class=\"flex-centered\">" +
-            "          <button class=\"btn\">Save</button>" +
-            "        </div>" +
-            "        <br/>" +
-            "        <a href=\"https://twitchapps.com/tmi/\" target=\"_blank\" class=\"text-center\">Don't know where to find your oauth token? Click Here!</a>" +
-            "      </form>" +
-            "    </main>" +
-            "  </body>" +
-            "</html>";
+        private static string pageData;
 
         public void Start()
         {
+            if (pageData == null)
+            {
+                using (StreamReader reader = new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream("StreamCore.Resources.Web.index.html")))
+                {
+                    pageData = reader.ReadToEnd();
+                    //_logger.LogInformation($"PageData: {pageData}");
+                }
+            }
             if (_listener == null)
             {
                 _cancellationToken = new CancellationTokenSource();
                 _listener = new HttpListener();
-                _listener.Prefixes.Add("http://localhost:8000/");
+                _listener.Prefixes.Add($"http://localhost:{_settings.WebAppPort}/");
                 Task.Run(async () =>
                 {
                     _listener.Start();
 
                     while (!_cancellationToken.IsCancellationRequested)
                     {
+                        _logger.LogInformation("Web server is listening for requests...");
                         HttpListenerContext ctx = await _listener.GetContextAsync();
                         HttpListenerRequest req = ctx.Request;
                         HttpListenerResponse resp = ctx.Response;
 
-                        if (req.HttpMethod == "POST" && req.Url.AbsolutePath == "/update")
+                        if (req.HttpMethod == "POST")
                         {
                             using (var reader = new StreamReader(req.InputStream, req.ContentEncoding))
                             {
                                 string postStr = reader.ReadToEnd();
-                                Dictionary<string, string> postData = postStr.Split('&').Aggregate(new Dictionary<string, string>(), (dict, d) => { var split = d.Split('='); dict.Add(split[0], split[1]); return dict; });
-                                try
+                                List<string> twitchChannels = new List<string>();
+                                foreach (var postData in postStr.Split('&'))
                                 {
-                                    if(postData.TryGetValue("twitch_oauthtoken", out var twitchOauthToken))
+                                    try
                                     {
-                                        twitchOauthToken = HttpUtility.UrlDecode(twitchOauthToken);
+                                        var split = postData.Split('=');
+                                        switch (split[0])
+                                        {
+                                            case "twitch_oauthtoken":
+                                                var twitchOauthToken = HttpUtility.UrlDecode(split[1]);
+                                                _authManager.Credentials.Twitch_OAuthToken = twitchOauthToken.StartsWith("oauth:") ? twitchOauthToken : !string.IsNullOrEmpty(twitchOauthToken) ? $"oauth:{twitchOauthToken}" : "";
+                                                break;
+                                            case "twitch_channel":
+                                                if (!string.IsNullOrWhiteSpace(split[1]))
+                                                {
+                                                    _logger.LogInformation($"Channel: {split[1]}");
+                                                    twitchChannels.Add(split[1]);
+                                                }
+                                                break;
+                                        }
                                     }
-                                    _authManager.Credentials = new LoginCredentials()
+                                    catch (Exception ex)
                                     {
-                                        Twitch_OAuthToken =  twitchOauthToken.StartsWith("oauth:") ? twitchOauthToken : !string.IsNullOrEmpty(twitchOauthToken) ? $"oauth:{twitchOauthToken}" : ""
-                                    };
+                                        _logger.LogError(ex, "An exception occurred in OnLoginDataUpdated callback");
+                                    }
                                 }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogError(ex, "An exception occurred in OnLoginDataUpdated callback");
-                                }
+                                _authManager.Credentials.Twitch_Channels_Array = twitchChannels.ToArray();
+                                _authManager.Save();
                             }
                         }
-
-                        byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, _authManager.Credentials.Twitch_OAuthToken));
-                        resp.ContentType = "text/html";
-                        resp.ContentEncoding = Encoding.UTF8;
-                        resp.ContentLength64 = data.LongLength;
-
-                        // Write out to the response stream (asynchronously), then close it
-                        await resp.OutputStream.WriteAsync(data, 0, data.Length);
+                        try
+                        {
+                            StringBuilder channelHtmlString = new StringBuilder();
+                            for (int i = 0; i < _authManager.Credentials.Twitch_Channels_Array.Length; i++)
+                            {
+                                channelHtmlString.Append($"<div class=\"input-group\" id=\"twitch_channel_{i}\"><input type=\"text\" name=\"twitch_channel\" class=\"form-input\" placeholder=\"Enter Channel Name\" value=\"{_authManager.Credentials.Twitch_Channels_Array[i]}\"><button type=\"button\" class=\"btn btn-primary btn-action\" onclick=\"removeChannel(twitch_channel_{i})\"><i class=\"icon icon-minus\"></i></button></div>");
+                            }
+                            byte[] data = Encoding.UTF8.GetBytes(pageData.Replace("{TwitchChannelHtml}", channelHtmlString.ToString()).Replace("{TwitchOAuthToken}", _authManager.Credentials.Twitch_OAuthToken));
+                            resp.ContentType = "text/html";
+                            resp.ContentEncoding = Encoding.UTF8;
+                            resp.ContentLength64 = data.LongLength;
+                            await resp.OutputStream.WriteAsync(data, 0, data.Length);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Exception while trying to prepare html for web login provider.");
+                        }
                     }
                 });
             }

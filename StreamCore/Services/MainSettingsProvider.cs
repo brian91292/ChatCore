@@ -11,6 +11,8 @@ namespace StreamCore.Services
     public class MainSettingsProvider : ISettingsProvider
     {
         public bool RunWebApp { get; set; } = true;
+        public int WebAppPort { get; set; } = 8338;
+
         private ObjectSerializer _configSerializer;
 
         public MainSettingsProvider(ILogger<MainSettingsProvider> logger, IPathProvider pathProvider)
@@ -18,7 +20,16 @@ namespace StreamCore.Services
             _logger = logger;
             _pathProvider = pathProvider;
             _configSerializer = new ObjectSerializer();
-            _configSerializer.Load(this, Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
+            string path = Path.Combine(_pathProvider.GetDataPath(), "settings.ini");
+            if (!File.Exists(path))
+            {
+                _configSerializer.Save(this, path);
+            }
+            else
+            {
+                _configSerializer.Load(this, path);
+            }
+
         }
 
         public void Save()

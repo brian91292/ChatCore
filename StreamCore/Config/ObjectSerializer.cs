@@ -1,6 +1,7 @@
 ﻿using StreamCore.Models;
 using StreamCore.SimpleJSON;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -24,7 +25,7 @@ namespace StreamCore.Config
             ConvertFromString.TryAdd(typeof(string), (fieldInfo, value) => { return (value.StartsWith("\"") && value.EndsWith("\"") ? value.Substring(1, value.Length - 2) : value); });
             ConvertToString.TryAdd(typeof(string), (fieldInfo, obj) =>
             {
-                string value = (string)obj.GetField(fieldInfo.Name);
+                string value = (string)obj.GetFieldValue(fieldInfo.Name);
                 // If the value is an array, we don't need quotes
                 if (value.StartsWith("{") && value.EndsWith("}"))
                     return value;
@@ -33,11 +34,11 @@ namespace StreamCore.Config
 
             // Bool handlers
             ConvertFromString.TryAdd(typeof(bool), (fieldInfo, value) => { return (value.Equals("true", StringComparison.CurrentCultureIgnoreCase) || value.Equals("1")); });
-            ConvertToString.TryAdd(typeof(bool), (fieldInfo, obj) => { return ((bool)obj.GetField(fieldInfo.Name)).ToString(); });
+            ConvertToString.TryAdd(typeof(bool), (fieldInfo, obj) => { return ((bool)obj.GetFieldValue(fieldInfo.Name)).ToString(); });
 
             // Enum handlers
             ConvertFromString.TryAdd(typeof(Enum), (fieldInfo, value) => { return Enum.Parse(fieldInfo.FieldType, value); });
-            ConvertToString.TryAdd(typeof(Enum), (fieldInfo, obj) => { return obj.GetField(fieldInfo.Name).ToString(); });
+            ConvertToString.TryAdd(typeof(Enum), (fieldInfo, obj) => { return obj.GetFieldValue(fieldInfo.Name).ToString(); });
         }
 
         private static bool CreateDynamicFieldConverter(FieldInfo fieldInfo)
@@ -48,11 +49,16 @@ namespace StreamCore.Config
                 return true;
             }
 
+            if(fieldType.IsArray)
+            {
+                return false;
+            }
+
             // If we got here, there's no nice convenient Parse function for this type... so try to convert each field individually.
             var fields = fieldInfo.FieldType.GetRuntimeFields();
             foreach (var field in fields)
             {
-                if (!field.IsPrivate && !TryCreateFieldConverterFromParseFunction(field))
+                if (!field.IsPrivate && !field.IsStatic && !TryCreateFieldConverterFromParseFunction(field))
                 {
                     throw new Exception($"Unsupported type {fieldInfo.FieldType.Name} or one of the types it implements cannot be automatically converted by the ObjectSerializer!");
                 }
@@ -60,52 +66,38 @@ namespace StreamCore.Config
 
             ConvertFromString.TryAdd(fieldType, (fi, v) =>
             {
-                try
+                object obj = Activator.CreateInstance(fi.FieldType);
+                if (string.IsNullOrEmpty(v))
                 {
-                    object obj = Activator.CreateInstance(fi.FieldType);
-                    if (string.IsNullOrEmpty(v))
-                    {
-                        return obj;
-                    }
-                    JSONNode json = JSON.Parse(v);
-                    foreach (var subFieldInfo in fi.FieldType.GetRuntimeFields())
-                    {
-                        if (!subFieldInfo.IsPrivate && !subFieldInfo.IsStatic && json.HasKey(subFieldInfo.Name))
-                        {
-                            subFieldInfo.SetValue(obj, ConvertFromString[subFieldInfo.FieldType].Invoke(subFieldInfo, json[subFieldInfo.Name].Value));
-                        }
-                    }
                     return obj;
                 }
-                catch (Exception ex)
+                JSONNode json = JSON.Parse(v);
+                foreach (var subFieldInfo in fi.FieldType.GetRuntimeFields())
                 {
-                    throw;
+                    if (!subFieldInfo.IsPrivate && !subFieldInfo.IsStatic && json.HasKey(subFieldInfo.Name))
+                    {
+                        subFieldInfo.SetValue(obj, ConvertFromString[subFieldInfo.FieldType].Invoke(subFieldInfo, json[subFieldInfo.Name].Value));
+                    }
                 }
+                return obj;
             });
             ConvertToString.TryAdd(fieldType, (fi, v) =>
             {
-                try
+                JSONObject json = new JSONObject();
+
+                // Grab the current field we're trying to convert off the parent object
+                var currentField = v.GetFieldValue(fi.Name);
+
+                foreach (var subFieldInfo in fi.FieldType.GetRuntimeFields())
                 {
-                    JSONObject json = new JSONObject();
-
-                    // Grab the current field we're trying to convert off the parent object
-                    var currentField = v.GetField(fi.Name);
-
-                    foreach (var subFieldInfo in fi.FieldType.GetRuntimeFields())
+                    if (!subFieldInfo.IsPrivate && !subFieldInfo.IsStatic)
                     {
-                        if (!subFieldInfo.IsPrivate && !subFieldInfo.IsStatic)
-                        {
-                            //var subFieldValue = currentField.GetField(subFieldInfo.Name);
-                            string value = ConvertToString[subFieldInfo.FieldType].Invoke(subFieldInfo, currentField);
-                            json.Add(subFieldInfo.Name, new JSONString(value));
-                        }
+                        //var subFieldValue = currentField.GetField(subFieldInfo.Name);
+                        string value = ConvertToString[subFieldInfo.FieldType].Invoke(subFieldInfo, currentField);
+                        json.Add(subFieldInfo.Name, new JSONString(value));
                     }
-                    return json.ToString();
                 }
-                catch (Exception ex)
-                {
-                    throw;
-                }
+                return json.ToString();
             });
             return true;
         }
@@ -118,7 +110,8 @@ namespace StreamCore.Config
                 // Converters already exist for these types
                 return true;
             }
-            var functions = fieldInfo.FieldType.GetRuntimeMethods();
+
+            var functions = fieldType.GetRuntimeMethods();
             foreach (var func in functions)
             {
                 switch (func.Name)
@@ -138,7 +131,8 @@ namespace StreamCore.Config
                         }
 
                         ConvertFromString.TryAdd(fieldType, (fi, v) => { return func.Invoke(null, new object[] { v }); });
-                        ConvertToString.TryAdd(fieldType, (fi, v) => { return v.GetField(fi.Name).ToString(); });
+                        ConvertToString.TryAdd(fieldType, (fi, v) => { return v.GetFieldValue(fi.Name).ToString(); });
+
                         return true;
                 }
             }
@@ -177,7 +171,7 @@ namespace StreamCore.Config
                     var value = match.Groups["Value"].Value;
 
                     // Otherwise, read the value in with the appropriate handler
-                    var fieldInfo = obj.GetType().GetField(name);
+                    var fieldInfo = obj.GetType().GetField(name.Replace(".","_"));
 
                     // If the fieldType is an enum, replace it with the generic Enum type
                     Type fieldType = fieldInfo.FieldType.IsEnum ? typeof(Enum) : fieldInfo.FieldType;
@@ -220,6 +214,16 @@ namespace StreamCore.Config
 
             string lastConfigSection = null;
             List<string> serializedClass = new List<string>();
+
+            var configHeader = (ConfigHeader)obj.GetType().GetCustomAttribute(typeof(ConfigHeader));
+            if (configHeader != null)
+            {
+                foreach(string comment in configHeader.Comment.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None))
+                {
+                    serializedClass.Add(string.IsNullOrWhiteSpace(comment) ? comment : $"// {comment}");
+                }
+            }
+
             foreach (var fieldInfo in obj.GetType().GetFields())
             {
                 // If the fieldType is an enum, replace it with the generic Enum type
@@ -262,9 +266,10 @@ namespace StreamCore.Config
                 }
                 catch (Exception ex)
                 {
+                    //throw;
                     //Plugin.Log($"Failed to convert field {fieldInfo.Name} to string! Value type is {fieldInfo.FieldType.Name}. {ex.ToString()}");
                 }
-                serializedClass.Add($"{fieldInfo.Name}={valueStr}");
+                serializedClass.Add($"{fieldInfo.Name.Replace("_", ".")}={valueStr}");
             }
             if (path != string.Empty && serializedClass.Count > 0)
             {

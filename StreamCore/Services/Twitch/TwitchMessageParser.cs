@@ -287,8 +287,8 @@ namespace StreamCore.Services.Twitch
                     if(messageMeta.TryGetValue("msg-id", out var msgIdValue))
                     {
                         TwitchMessage systemMessage = null;
-                        _logger.LogInformation($"msg-id: {msgIdValue}");
-                        _logger.LogInformation($"Message: {match.Value}");
+                        //_logger.LogInformation($"msg-id: {msgIdValue}");
+                        //_logger.LogInformation($"Message: {match.Value}");
                         switch(msgIdValue)
                         {
                             case "skip-subs-mode-message":
@@ -337,10 +337,6 @@ namespace StreamCore.Services.Twitch
                                 }
                                 break;
                         }
-                    }
-                    else
-                    {
-                        //_logger.LogInformation($"Message: {match.Value}");
                     }
 
                     //_logger.LogInformation($"RawMsg: {rawMessage}");

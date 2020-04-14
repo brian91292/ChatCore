@@ -104,6 +104,11 @@
             The IRC message type for this TwitchMessage
             </summary>
         </member>
+        <member name="P:StreamCore.Models.Twitch.TwitchMessage.Bits">
+            <summary>
+            The number of bits in this message, if any.
+            </summary>
+        </member>
         <member name="P:StreamCore.Models.Twitch.TwitchRoomstate.SlowModeInterval">
             <summary>
             The number of seconds a chatter without moderator privileges must wait between sending messages

@@ -280,6 +280,7 @@ namespace StreamCore.Services.Twitch
                         IsSystemMessage = messageType == "NOTICE" || messageType == "USERNOTICE",
                         IsHighlighted = isHighlighted,
                         IsPing = !string.IsNullOrEmpty(messageText) && loggedInUser != null && messageText.Contains($"@{loggedInUser.Name}", StringComparison.OrdinalIgnoreCase),
+                        Bits = messageBits,
                         Metadata = messageMeta,
                         Type = messageType
                     };

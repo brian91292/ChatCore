@@ -22,6 +22,10 @@ namespace StreamCore.Models.Twitch
         /// The IRC message type for this TwitchMessage
         /// </summary>
         public string Type { get; internal set; }
+        /// <summary>
+        /// The number of bits in this message, if any.
+        /// </summary>
+        public int Bits { get; internal set; }
 
         public object Clone()
         {

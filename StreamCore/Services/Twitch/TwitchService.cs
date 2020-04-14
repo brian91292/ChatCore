@@ -268,6 +268,14 @@ namespace StreamCore.Services.Twitch
             SendRawMessage(Assembly.GetCallingAssembly(), $"PRIVMSG #{channel} :{message}", true);
         }
 
+        public void SendTextMessage(string message, IChatChannel channel)
+        {
+            if (channel is TwitchChannel)
+            {
+                SendTextMessage(message, channel.Id);
+            }
+        }
+
         public void SendCommand(string command, string channel)
         {
             SendRawMessage(Assembly.GetCallingAssembly(), $"PRIVMSG #{channel} :/{command}");

@@ -9,15 +9,22 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Text;
 using System.Linq;
+using StreamCore.Models.Twitch;
 
 namespace StreamCore.Services
 {
+    /// <summary>
+    /// A multiplexer for all the supported streaming services.
+    /// </summary>
     public class StreamingService : StreamingServiceBase, IStreamingService
     { 
         public StreamingService(ILogger<StreamingService> logger, IList<IStreamingService> streamingServices)
         {
             _logger = logger;
             _streamingServices = streamingServices;
+            _twitchService = (TwitchService)streamingServices.First(s => s is TwitchService);
+            _mixerService = (MixerService)streamingServices.First(s => s is MixerService);
+
             foreach (var service in _streamingServices)
             {
                 service.OnTextMessageReceived += Service_OnTextMessageReceived;
@@ -32,8 +39,9 @@ namespace StreamCore.Services
 
         private ILogger _logger;
         private IList<IStreamingService> _streamingServices;
+        private TwitchService _twitchService;
+        private MixerService _mixerService;
         private object _invokeLock = new object();
-
 
         private void Service_OnMessageCleared(IStreamingService svc, string messageId)
         {
@@ -91,14 +99,22 @@ namespace StreamCore.Services
             }
         }
 
+        public void SendTextMessage(string message, IChatChannel channel)
+        {
+            foreach(var svc in _streamingServices)
+            {
+                svc.SendTextMessage(message, channel);
+            }
+        }
+
         public TwitchService GetTwitchService()
         {
-            return (TwitchService)_streamingServices.FirstOrDefault(s => s is TwitchService);
+            return _twitchService;
         }
 
         public MixerService GetMixerService()
         {
-            return (MixerService)_streamingServices.FirstOrDefault(s => s is MixerService);
+            return _mixerService;
         }
     }
 }

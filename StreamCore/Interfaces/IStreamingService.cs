@@ -41,5 +41,12 @@ namespace StreamCore.Interfaces
         /// Callback that occurs when a specific chat message is cleared. Argument is the message id to be cleared.
         /// </summary>
         event Action<IStreamingService, string> OnMessageCleared;
+
+        /// <summary>
+        /// Sends a text message to the specified IChatChannel
+        /// </summary>
+        /// <param name="message">The text message to be sent</param>
+        /// <param name="channel">The chat channel to send the message to</param>
+        void SendTextMessage(string message, IChatChannel channel);
     }
 }

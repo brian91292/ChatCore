@@ -21,5 +21,13 @@ namespace StreamCore.Services.Mixer
         {
             throw new NotImplementedException();
         }
+
+        public void SendTextMessage(string message, IChatChannel channel)
+        {
+            //if(channel is MixerChannel)
+            //{
+            //    SendTextMessage(message, channel.Id);
+            //}
+        }
     }
 }

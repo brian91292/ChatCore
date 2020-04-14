@@ -274,7 +274,7 @@ namespace StreamCore.Services.Twitch
                             Id = messageChannelName,
                             Roomstate = messageRoomstate
                         },
-                        Emotes = messageEmotes.ToArray(), // TODO: implement cheermote parsing
+                        Emotes = messageEmotes.ToArray(), // TODO: test cheermote parsing
                         Message = messageText,
                         IsActionMessage = isActionMessage,
                         IsSystemMessage = messageType == "NOTICE" || messageType == "USERNOTICE",

@@ -89,6 +89,13 @@
             Callback that occurs when a specific chat message is cleared. Argument is the message id to be cleared.
             </summary>
         </member>
+        <member name="M:StreamCore.Interfaces.IStreamingService.SendTextMessage(System.String,StreamCore.Interfaces.IChatChannel)">
+            <summary>
+            Sends a text message to the specified IChatChannel
+            </summary>
+            <param name="message">The text message to be sent</param>
+            <param name="channel">The chat channel to send the message to</param>
+        </member>
         <member name="P:StreamCore.Models.Twitch.TwitchEmote.Bits">
             <summary>
             The number of bits associated with this emote (probably a cheermote)
@@ -117,6 +124,11 @@
         <member name="P:StreamCore.Models.Twitch.TwitchRoomstate.MinFollowTime">
             <summary>
             If FollowersOnly is true, this specifies the number of minutes a user must be following before they can chat.
+            </summary>
+        </member>
+        <member name="T:StreamCore.Services.StreamingService">
+            <summary>
+            A multiplexer for all the supported streaming services.
             </summary>
         </member>
         <member name="M:StreamCore.Services.Twitch.TwitchMessageParser.ParseRawMessage(System.String,System.Collections.Concurrent.ConcurrentDictionary{System.String,StreamCore.Interfaces.IChatChannel},StreamCore.Interfaces.IChatUser,StreamCore.Interfaces.IChatMessage[]@)">

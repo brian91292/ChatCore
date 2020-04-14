@@ -101,9 +101,9 @@ namespace StreamCore.Services
 
         public void SendTextMessage(string message, IChatChannel channel)
         {
-            foreach(var svc in _streamingServices)
+            if(channel is TwitchChannel)
             {
-                svc.SendTextMessage(message, channel);
+                _twitchService.SendTextMessage(Assembly.GetCallingAssembly(), message, channel.Id);
             }
         }
 

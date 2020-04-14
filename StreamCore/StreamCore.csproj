@@ -8,11 +8,11 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <DocumentationFile>C:\Users\brian\source\repos\StreamCore\StreamCore\StreamCore.xml</DocumentationFile>
+    <DocumentationFile>$(ProjectDir)StreamCore.xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>C:\Users\brian\source\repos\StreamCore\StreamCore\StreamCore.xml</DocumentationFile>
+    <DocumentationFile>$(ProjectDir)StreamCore.xml</DocumentationFile>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 

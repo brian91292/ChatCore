@@ -14,7 +14,7 @@ namespace StreamCore.Config
 {
     public class ObjectSerializer
     {
-        private static readonly Regex _configRegex = new Regex(@"(?<Name>[^=\/\/#\s]+)\s*=[\t\p{Zs}]*(?<Value>"".+""|({(?:[^{}]|(?<Array>{)|(?<-Array>}))+(?(Array)(?!))})|\S+)?[\t\p{Zs}]*((\/{2,2}|[#])(?<Comment>.+)?)?", RegexOptions.Compiled | RegexOptions.Multiline);
+        private static readonly Regex _configRegex = new Regex(@"(?<Section>\[[a-zA-Z0-9\s]+\])|(?<Name>[^=\/\/#\s]+)\s*=[\t\p{Zs}]*(?<Value>"".+""|({(?:[^{}]|(?<Array>{)|(?<-Array>}))+(?(Array)(?!))})|\S+)?[\t\p{Zs}]*((\/{2,2}|[#])(?<Comment>.+)?)?", RegexOptions.Compiled | RegexOptions.Multiline);
         private static readonly ConcurrentDictionary<Type, Func<FieldInfo, string, object>> ConvertFromString = new ConcurrentDictionary<Type, Func<FieldInfo, string, object>>();
         private static readonly ConcurrentDictionary<Type, Func<FieldInfo, object, string>> ConvertToString = new ConcurrentDictionary<Type, Func<FieldInfo, object, string>>();
         private readonly ConcurrentDictionary<string, string> _comments = new ConcurrentDictionary<string, string>();
@@ -153,8 +153,15 @@ namespace StreamCore.Config
             if (File.Exists(path))
             {
                 var matches = _configRegex.Matches(File.ReadAllText(path));
+                string currentSection = null;
                 foreach (Match match in matches)
                 {
+                    if(match.Groups["Section"].Success)
+                    {
+                        currentSection = match.Groups["Section"].Value;
+                        continue;
+                    }
+
                     // Grab the name, which has to exist or the regex wouldn't have matched
                     var name = match.Groups["Name"].Value;
 
@@ -218,7 +225,7 @@ namespace StreamCore.Config
             var configHeader = (ConfigHeader)obj.GetType().GetCustomAttribute(typeof(ConfigHeader));
             if (configHeader != null)
             {
-                foreach(string comment in configHeader.Comment.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None))
+                foreach(string comment in configHeader.Comment)
                 {
                     serializedClass.Add(string.IsNullOrWhiteSpace(comment) ? comment : $"// {comment}");
                 }

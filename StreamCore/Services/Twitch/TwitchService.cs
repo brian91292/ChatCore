@@ -20,6 +20,8 @@ namespace StreamCore.Services.Twitch
         public ReadOnlyDictionary<string, IChatChannel> Channels;
         public TwitchUser LoggedInUser { get; internal set; } = null;
 
+        public string DisplayName { get; } = "Twitch";
+
         protected ConcurrentDictionary<Assembly, Action<IStreamingService, string>> _onRawMessageReceivedCallbacks = new ConcurrentDictionary<Assembly, Action<IStreamingService, string>>();
         public event Action<IStreamingService, string> OnRawMessageReceived
         {
@@ -27,7 +29,7 @@ namespace StreamCore.Services.Twitch
             remove => _onRawMessageReceivedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
 
-        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, TwitchDataProvider twitchDataProvider, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthProvider authManager, ISettingsProvider settingsProvider, Random rand)
+        public TwitchService(ILogger<TwitchService> logger, TwitchMessageParser messageParser, TwitchDataProvider twitchDataProvider, IWebSocketService websocketService, IWebLoginProvider webLoginProvider, IUserAuthProvider authManager, MainSettingsProvider settingsProvider, Random rand)
         {
             _logger = logger;
             _messageParser = messageParser;
@@ -61,7 +63,7 @@ namespace StreamCore.Services.Twitch
         private IWebSocketService _websocketService;
         private IWebLoginProvider _webLoginProvider;
         private IUserAuthProvider _authManager;
-        private ISettingsProvider _settingsProvider;
+        private MainSettingsProvider _settingsProvider;
         private Random _rand;
         private bool _isStarted = false;
         private string _anonUsername;

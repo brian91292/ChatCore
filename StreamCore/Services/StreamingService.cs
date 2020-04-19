@@ -17,7 +17,9 @@ namespace StreamCore.Services
     /// A multiplexer for all the supported streaming services.
     /// </summary>
     public class StreamingService : StreamingServiceBase, IStreamingService
-    { 
+    {
+        public string DisplayName { get; private set; } = "Generic";
+
         public StreamingService(ILogger<StreamingService> logger, IList<IStreamingService> streamingServices)
         {
             _logger = logger;
@@ -25,6 +27,7 @@ namespace StreamCore.Services
             _twitchService = (TwitchService)streamingServices.First(s => s is TwitchService);
             _mixerService = (MixerService)streamingServices.First(s => s is MixerService);
 
+            StringBuilder sb = new StringBuilder();
             foreach (var service in _streamingServices)
             {
                 service.OnTextMessageReceived += Service_OnTextMessageReceived;
@@ -34,7 +37,14 @@ namespace StreamCore.Services
                 service.OnLogin += Service_OnLogin;
                 service.OnChatCleared += Service_OnChatCleared;
                 service.OnMessageCleared += Service_OnMessageCleared;
+
+                if(sb.Length > 0)
+                {
+                    sb.Append(", ");
+                }
+                sb.Append(service.DisplayName);
             }
+            DisplayName = sb.ToString();
         }
 
         private ILogger _logger;

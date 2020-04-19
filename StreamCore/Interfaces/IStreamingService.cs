@@ -8,6 +8,10 @@ namespace StreamCore.Interfaces
     public interface IStreamingService
     {
         /// <summary>
+        /// The display name of the service
+        /// </summary>
+        string DisplayName { get; }
+        /// <summary>
         /// Callback that occurs when a successful login to the provided streaming service occurs 
         /// </summary>
         event Action<IStreamingService> OnLogin;

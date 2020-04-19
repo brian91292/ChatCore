@@ -3,61 +3,104 @@
     <title>StreamCore v3 Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectre.css/0.5.8/spectre.min.css">
     <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
+    <style type="text/css">
+        .borderless-input {
+            border: none;
+            background: transparent;
+            width: 100px;
+        }
+
+        .oauth-input {
+            width: 100px;
+            padding-left: 100px;
+        }
+
+        .twitch-panel {
+            align-content: center;
+            position: fixed;
+            width: 500px;
+            margin: 4px;
+            /*top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            overflow: visible;*/
+        }
+    </style>
 </head>
 <body>
-    <main class="container flex-centered">
-        <form id="form" method="post">
-            <br />
-            <h3 class="text-center">Twitch Login</h3>
-            <hr />
-            <div class="form-group">
-                <label class="form-label text-center" for="say">OAuth Token</label>
-                <input class="form-input" name="twitch_oauthtoken" type="text" id="say" placeholder="oauth:12abc3defg4p678arw9aq2xasd0gwa43" value="{TwitchOAuthToken}">
-                <a href="https://twitchapps.com/tmi/" target="_blank" class="text-center">Don't know where to find your oauth token? Click Here!</a>
-            </div>
-            <br />
-            <h3 class="text-center">Channels</h3>
-            <hr />
-            <div class="flex-centered">
-                <button type="button" class="btn btn-primary btn-action" onclick="addChannel()"><i class="icon icon-plus"></i></button>
-            </div>
-            <br />
-            <div class="flex-centered">
-                <div class="form-group" id="channel-container">
-                    {TwitchChannelHtml}
+
+    <div class="panel twitch-panel">
+        <div class="panel-header">
+            <div class="panel-title">Twitch</div>
+        </div>
+        <div class="panel-nav">
+            <!-- navigation components: tabs, breadcrumbs or pagination -->
+        </div>
+        <div class="panel-body">
+            <form id="form" class="form-horizontal form-group" method="post" action="submit">
+                <h3>Login</h3>
+                <label class="form-label" for="twitch_oauth_input">OAuth Token</label>
+                <div class="oauth_input">
+                    <input id="twitch_oauth_input" name="twitch_oauthtoken" class="form-input form-inline my-2" type="password" placeholder="oauth:12abc3defg4p678arw9aq2xasd0gwa43" value="{TwitchOAuthToken}">
                 </div>
-            </div>
-            <hr />
-            <div class="flex-centered">
-                <button class="btn">Save</button>
-            </div>
-            <br />
-        </form>
-    </main>
+                <label class="form-checkbox form-inline">
+                    <input type="checkbox" onclick="toggleTwitchOAuthVis()"><i class="form-icon"></i>Show OAuth Token
+                    (<a href="https://twitchapps.com/tmi/" target="_blank" class="text-center">Need an OAuth Token? Click here!</a>)
+                </label>
+
+            </form>
+        </div>
+        <div class="panel-body">
+            <form id="form" class="form-horizontal form-group" method="post" action="submit">
+                <h3>Channels</h3>
+                <div id="channel-container" class="my-2">
+                    {TwitchChannelHtml}
+                    <span id="add_channel_button" class="chip">
+                        <button id="add_channel_button" type="button" onclick="addChannel()" class="btn btn-link btn-sm" aria-label="Close" role="button">+</button>
+                    </span>
+                </div>
+
+            </form>
+        </div>
+        <div class="panel-footer">
+            <button class="btn my-2 float-right">Save</button>
+        </div>
+    </div>
+
 
     <script>
-        let idCounter = 0
+        let idCounter = document.getElementById("channel-container").getElementsByTagName("input").length;
+
+        function toggleTwitchOAuthVis() {
+            var x = document.getElementById("twitch_oauth_input");
+            if (x.type === "password") {
+                x.type = "text";
+            } else {
+                x.type = "password";
+            }
+        }
 
         function addChannel() {
-            let container = document.getElementById("channel-container")
-            let channelId = "twitch_channel_" + idCounter
-            let div = document.createElement("div")
-            div.className = "input-group"
-            div.id = channelId
-            div.innerHTML = "<input type=\"text\" name=\"twitch_channel\" class=\"form-input\" placeholder=\"Enter Channel Name\">" +
-                "<button type=\"button\" class=\"btn btn-primary btn-action\" onclick=\"removeChannel(" + channelId + ")\"><i class=\"icon icon-minus\"></i></button>" //this shouldn't work, but it does
-            container.appendChild(div)
+            let container = document.getElementById("channel-container");
+            let channelId = "twitch_channel_" + idCounter;
+            let span = document.createElement("span");
+            span.id = channelId;
+            span.className = "chip";
+            span.innerHTML =
+                "<input type=\"text\" class=\"borderless-input\" name=\"twitch_channel\" placeholder=\"Twitch Channel\" value=\"\" />" +
+                "<button type=\"button\" onclick=\"removeChannel('" + channelId + "')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\" />";
+            container.insertBefore(span, document.getElementById("add_channel_button"));
+            //container.appendChild(span);
 
             idCounter++
         }
 
         function removeChannel(channelId) {
-            let container = document.getElementById("channel-container")
-            let channel = document.getElementById(channelId.id)
-            container.removeChild(channel)
+            let container = document.getElementById("channel-container");
+            let channel = document.getElementById(channelId);
+            container.removeChild(channel);
         }
     </script>
 
 </body>
 </html>
-

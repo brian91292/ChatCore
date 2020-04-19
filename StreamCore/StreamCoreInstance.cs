@@ -46,6 +46,7 @@ namespace StreamCore
                         .AddSingleton<Random>()
                         .AddTransient<HttpClient>()
                         .AddSingleton<ObjectSerializer>()
+                        .AddSingleton<MainSettingsProvider>()
                         .AddSingleton<TwitchService>()
                         .AddSingleton<TwitchServiceManager>()
                         .AddSingleton<TwitchMessageParser>()
@@ -74,15 +75,15 @@ namespace StreamCore
                             )
                         )
                         .AddSingleton<IPathProvider, PathProvider>()
-                        .AddSingleton<ISettingsProvider, MainSettingsProvider>()
                         .AddSingleton<IUserAuthProvider, UserAuthProvider>()
                         .AddSingleton<IWebLoginProvider, WebLoginProvider>()
                         .AddSingleton<IEmojiParser, FrwTwemojiParser>()
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
-                    if (_serviceProvider.GetService<ISettingsProvider>().RunWebApp)
+                    if (_serviceProvider.GetService<MainSettingsProvider>().RunWebApp)
                     {
                         _serviceProvider.GetService<IWebLoginProvider>().Start();
+                        //System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
                     }
                 }
                 return _instance;

@@ -16,7 +16,7 @@ namespace StreamCore.Services
 {
     public class WebLoginProvider : IWebLoginProvider
     {
-        public WebLoginProvider(ILogger<WebLoginProvider> logger, IUserAuthProvider authManager, ISettingsProvider settings)
+        public WebLoginProvider(ILogger<WebLoginProvider> logger, IUserAuthProvider authManager, MainSettingsProvider settings)
         {
             _logger = logger;
             _authManager = authManager;
@@ -25,7 +25,7 @@ namespace StreamCore.Services
 
         private ILogger _logger;
         private IUserAuthProvider _authManager;
-        private ISettingsProvider _settings;
+        private MainSettingsProvider _settings;
         private HttpListener _listener;
         private CancellationTokenSource _cancellationToken;
         private static string pageData;
@@ -56,7 +56,7 @@ namespace StreamCore.Services
                         HttpListenerRequest req = ctx.Request;
                         HttpListenerResponse resp = ctx.Response;
 
-                        if (req.HttpMethod == "POST")
+                        if (req.HttpMethod == "POST" && req.Url.AbsolutePath == "/submit")
                         {
                             using (var reader = new StreamReader(req.InputStream, req.ContentEncoding))
                             {
@@ -90,13 +90,22 @@ namespace StreamCore.Services
                                 _authManager.Credentials.Twitch_Channels_Array = twitchChannels.ToArray();
                                 _authManager.Save();
                             }
+                            resp.Redirect(req.UrlReferrer.OriginalString);
+                            resp.Close();
+                            continue;
                         }
                         try
                         {
                             StringBuilder channelHtmlString = new StringBuilder();
                             for (int i = 0; i < _authManager.Credentials.Twitch_Channels_Array.Length; i++)
                             {
-                                channelHtmlString.Append($"<div class=\"input-group\" id=\"twitch_channel_{i}\"><input type=\"text\" name=\"twitch_channel\" class=\"form-input\" placeholder=\"Enter Channel Name\" value=\"{_authManager.Credentials.Twitch_Channels_Array[i]}\"><button type=\"button\" class=\"btn btn-primary btn-action\" onclick=\"removeChannel(twitch_channel_{i})\"><i class=\"icon icon-minus\"></i></button></div>");
+                                //<span id="twitch_channel_1" class="chip">
+                                //  ChannelName
+                                //  <input type="text" class="form-input" name="twitch_channel" style="display:none;" value="yeeter" />
+                                //  <button type="button" onclick="removeChannel('twitch_channel_1')" class="btn btn-clear" aria-label="Close" role="button"></button>
+                                //</span>
+                                var channel = _authManager.Credentials.Twitch_Channels_Array[i];
+                                channelHtmlString.Append($"<span id=\"twitch_channel_{i}\" class=\"chip \">{channel}<input type=\"text\" class=\"form-input\" name=\"twitch_channel\" style=\"display: none; \" value=\"{channel}\" /><button type=\"button\" onclick=\"removeChannel('twitch_channel_{i}')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\"></button></span>");
                             }
                             byte[] data = Encoding.UTF8.GetBytes(pageData.Replace("{TwitchChannelHtml}", channelHtmlString.ToString()).Replace("{TwitchOAuthToken}", _authManager.Credentials.Twitch_OAuthToken));
                             resp.ContentType = "text/html";

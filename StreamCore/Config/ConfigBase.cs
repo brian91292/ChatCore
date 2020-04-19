@@ -48,7 +48,7 @@ namespace StreamCore.Config
             }
         }
 
-        public void Load()
+        private void Load()
         {
             lock (_saveLock)
             {

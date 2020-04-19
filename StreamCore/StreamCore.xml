@@ -54,6 +54,11 @@
             All the raw metadata associated with this message. This contains platform-specific data for devs who want to access any extra data that may not have been parsed.
             </summary>
         </member>
+        <member name="P:StreamCore.Interfaces.IStreamingService.DisplayName">
+            <summary>
+            The display name of the service
+            </summary>
+        </member>
         <member name="E:StreamCore.Interfaces.IStreamingService.OnLogin">
             <summary>
             Callback that occurs when a successful login to the provided streaming service occurs 

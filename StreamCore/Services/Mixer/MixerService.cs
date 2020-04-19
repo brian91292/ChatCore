@@ -10,6 +10,7 @@ namespace StreamCore.Services.Mixer
 {
     public class MixerService : StreamingServiceBase, IStreamingService
     {
+        public string DisplayName { get; } = "Mixer"; 
         public MixerService(ILogger<MixerService> logger)
         {
             _logger = logger;

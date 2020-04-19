@@ -8,12 +8,28 @@ using System.Text;
 
 namespace StreamCore.Services
 {
-    public class MainSettingsProvider : ISettingsProvider
+    public class MainSettingsProvider
     {
-        public bool RunWebApp { get; set; } = true;
-        public int WebAppPort { get; set; } = 8338;
+        [ConfigSection("WebApp")]
+        [ConfigMeta(Comment = "When enabled, the webapp will launched automatically at runtime.")]
+        public bool RunWebApp = true;
+        [ConfigMeta(Comment = "The port the webapp will run on.")]
+        public int WebAppPort = 8338;
 
-        private ObjectSerializer _configSerializer;
+        [ConfigSection("Global")]
+        [ConfigMeta(Comment = "When enabled, emojis will be parsed.")]
+        public bool ParseEmojis = true;
+
+        [ConfigSection("Twitch")]
+        [ConfigMeta(Comment = "When enabled, BetterTwitchTV emotes will be parsed.")]
+        public bool ParseBTTVEmotes = true;
+        [ConfigMeta(Comment = "When enabled, FrankerFaceZ emotes will be parsed.")]
+        public bool ParseFFZEmotes = true;
+        [ConfigMeta(Comment = "When enabled, Twitch emotes will be parsed.")]
+        public bool ParseTwitchEmotes = true;
+        [ConfigMeta(Comment = "When enabled, Twitch cheermotes will be parsed.")]
+        public bool ParseCheermotes = true;
+
 
         public MainSettingsProvider(ILogger<MainSettingsProvider> logger, IPathProvider pathProvider)
         {
@@ -21,23 +37,17 @@ namespace StreamCore.Services
             _pathProvider = pathProvider;
             _configSerializer = new ObjectSerializer();
             string path = Path.Combine(_pathProvider.GetDataPath(), "settings.ini");
-            if (!File.Exists(path))
-            {
-                _configSerializer.Save(this, path);
-            }
-            else
-            {
-                _configSerializer.Load(this, path);
-            }
-
+            _configSerializer.Load(this, path);
+            _configSerializer.Save(this, path);
         }
+
+        private ILogger _logger;
+        private IPathProvider _pathProvider;
+        private ObjectSerializer _configSerializer;
 
         public void Save()
         {
             _configSerializer.Save(this, Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
         }
-
-        private ILogger _logger;
-        private IPathProvider _pathProvider;
     }
 }

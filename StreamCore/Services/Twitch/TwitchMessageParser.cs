@@ -18,17 +18,19 @@ namespace StreamCore.Services.Twitch
         private readonly Regex _twitchMessageRegex = new Regex(@"^(?:@(?<Tags>[^\r\n ]*) +|())(?::(?<HostName>[^\r\n ]+) +|())(?<MessageType>[^\r\n ]+)(?: +(?<ChannelName>[^:\r\n ]+[^\r\n ]*(?: +[^:\r\n ]+[^\r\n ]*)*)|())?(?: +:(?<Message>[^\r\n]*)| +())?[\r\n]*$", RegexOptions.Compiled | RegexOptions.Multiline);
         private readonly Regex _tagRegex = new Regex(@"(?<Tag>[^@^;^=]+)=(?<Value>[^;\s]+)", RegexOptions.Compiled | RegexOptions.Multiline);
 
-        public TwitchMessageParser(ILogger<TwitchMessageParser> logger, TwitchDataProvider twitchDataProvider, IEmojiParser emojiParser)
+        public TwitchMessageParser(ILogger<TwitchMessageParser> logger, TwitchDataProvider twitchDataProvider, MainSettingsProvider settings, IEmojiParser emojiParser)
         {
             _logger = logger;
             _twitchDataProvider = twitchDataProvider;
             _emojiParser = emojiParser;
+            _settings = settings;
         }
 
         private ILogger _logger;
         private TwitchDataProvider _twitchDataProvider;
         private IEmojiParser _emojiParser;
         private Dictionary<int, string> _userColors = new Dictionary<int, string>();
+        private MainSettingsProvider _settings;
         private string GetNameColor(string name)
         {
             int nameHash = name.GetHashCode();
@@ -129,7 +131,7 @@ namespace StreamCore.Services.Twitch
                     {
                         if (messageText.Length > 0)
                         {
-                            if (messageMeta.TryGetValue("emotes", out var emoteStr))
+                            if (_settings.ParseTwitchEmotes && messageMeta.TryGetValue("emotes", out var emoteStr))
                             {
                                 // Parse all the normal Twitch emotes
                                 messageEmotes = emoteStr.Split('/').Aggregate(new List<IChatEmote>(), (emoteList, emoteInstanceString) =>
@@ -175,13 +177,10 @@ namespace StreamCore.Services.Twitch
                                         int startIndex = i - lastWord.Length;
                                         int endIndex = i - 1;
 
-
-
                                         if (!foundTwitchEmotes.Contains(lastWord))
                                         {
-
                                             // Make sure we haven't already matched a Twitch emote with the same string, just incase the user has a BTTV/FFZ emote with the same name
-                                            if (messageBits > 0 && _twitchDataProvider.TryGetCheermote(lastWord, messageChannelName, out var cheermoteData, out var numBits) && numBits > 0)
+                                            if (_settings.ParseCheermotes && messageBits > 0 && _twitchDataProvider.TryGetCheermote(lastWord, messageChannelName, out var cheermoteData, out var numBits) && numBits > 0)
                                             {
                                                 //_logger.LogInformation($"Got cheermote! Total message bits: {messageBits}");
                                                 var tier = cheermoteData.GetTier(numBits);
@@ -202,17 +201,20 @@ namespace StreamCore.Services.Twitch
                                             }
                                             else if (_twitchDataProvider.TryGetThirdPartyEmote(lastWord, messageChannelName, out var emoteData))
                                             {
-                                                messageEmotes.Add(new TwitchEmote()
+                                                if (emoteData.Type == "BTTV" && _settings.ParseBTTVEmotes || emoteData.Type == "FFZ" && _settings.ParseFFZEmotes)
                                                 {
-                                                    Id = $"{emoteData.Type}_{lastWord}",
-                                                    Name = lastWord,
-                                                    Uri = emoteData.Uri,
-                                                    StartIndex = startIndex,
-                                                    EndIndex = endIndex,
-                                                    IsAnimated = emoteData.IsAnimated,
-                                                    Bits = 0,
-                                                    Color = ""
-                                                });
+                                                    messageEmotes.Add(new TwitchEmote()
+                                                    {
+                                                        Id = $"{emoteData.Type}_{lastWord}",
+                                                        Name = lastWord,
+                                                        Uri = emoteData.Uri,
+                                                        StartIndex = startIndex,
+                                                        EndIndex = endIndex,
+                                                        IsAnimated = emoteData.IsAnimated,
+                                                        Bits = 0,
+                                                        Color = ""
+                                                    });
+                                                }
                                             }
                                         }
                                         currentWord.Clear();
@@ -224,8 +226,11 @@ namespace StreamCore.Services.Twitch
                                 }
                             }
 
-                            // Parse all emojis
-                            messageEmotes.AddRange(_emojiParser.FindEmojis(messageText));
+                            if (_settings.ParseEmojis)
+                            {
+                                // Parse all emojis
+                                messageEmotes.AddRange(_emojiParser.FindEmojis(messageText));
+                            }
 
                             // Sort the emotes in descending order to make replacing them in the string later on easier
                             messageEmotes.Sort((a, b) =>

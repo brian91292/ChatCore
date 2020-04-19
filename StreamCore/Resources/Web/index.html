@@ -37,7 +37,7 @@
             <!-- navigation components: tabs, breadcrumbs or pagination -->
         </div>
         <div class="panel-body">
-            <form id="form" class="form-horizontal form-group" method="post" action="submit">
+            <form id="twitch-form" class="form-horizontal form-group" method="post" action="submit">
                 <h3>Login</h3>
                 <label class="form-label" for="twitch_oauth_input">OAuth Token</label>
                 <div class="oauth_input">
@@ -47,11 +47,7 @@
                     <input type="checkbox" onclick="toggleTwitchOAuthVis()"><i class="form-icon"></i>Show OAuth Token
                     (<a href="https://twitchapps.com/tmi/" target="_blank" class="text-center">Need an OAuth Token? Click here!</a>)
                 </label>
-
-            </form>
-        </div>
-        <div class="panel-body">
-            <form id="form" class="form-horizontal form-group" method="post" action="submit">
+                <br /><br />
                 <h3>Channels</h3>
                 <div id="channel-container" class="my-2">
                     {TwitchChannelHtml}
@@ -59,11 +55,16 @@
                         <button id="add_channel_button" type="button" onclick="addChannel()" class="btn btn-link btn-sm" aria-label="Close" role="button">+</button>
                     </span>
                 </div>
-
             </form>
         </div>
+        <!--<div class="panel-body">
+            <form id="twitch-form" class="form-horizontal form-group" method="post" action="submit">
+               
+
+            </form>
+        </div>-->
         <div class="panel-footer">
-            <button class="btn my-2 float-right">Save</button>
+            <button class="btn my-2 float-right" form="twitch-form">Save</button>
         </div>
     </div>
 

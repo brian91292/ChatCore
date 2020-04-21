@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace StreamCore.Config
 {
@@ -13,11 +15,12 @@ namespace StreamCore.Config
         private FileSystemWatcher _watcher;
         private ObjectSerializer _configSerializer;
         private bool _saving = false;
-
+        private bool _saveTriggersConfigChangedEvent = false;
         public event Action<T> OnConfigChanged;
 
-        public ConfigBase(string configDirectory, string configName)
+        public ConfigBase(string configDirectory, string configName, bool saveTriggersConfigChangedEvent = false)
         {
+            _saveTriggersConfigChangedEvent = saveTriggersConfigChangedEvent;
             _configSerializer = new ObjectSerializer();
             _configDirectory = configDirectory;
             _configFilePath = Path.Combine(configDirectory, $"{configName}.ini");
@@ -41,7 +44,7 @@ namespace StreamCore.Config
 
         private void _watcher_Changed(object sender, FileSystemEventArgs e)
         {
-            if (!_saving)
+            if (!_saving || _saveTriggersConfigChangedEvent)
             {
                 Load();
                 OnConfigChanged?.Invoke((T)this);
@@ -63,7 +66,7 @@ namespace StreamCore.Config
             }
         }
 
-        public void Save()
+        public void Save(bool isRetry = false)
         {
             lock (_saveLock)
             {
@@ -74,7 +77,15 @@ namespace StreamCore.Config
                 }
                 catch (Exception ex)
                 {
-                    //Logger.log.Error($"An unhandled exception occurred while trying to save config! {ex.ToString()}");
+                    if (!isRetry)
+                    {
+                        //Logger.log.Error($"An unhandled exception occurred while trying to save config! {ex.ToString()}");
+                        Task.Run(() =>
+                        {
+                            Thread.Sleep(2000);
+                            Save(true);
+                        });
+                    }
                 }
                 _saving = false;
             }

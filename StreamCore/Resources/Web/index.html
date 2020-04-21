@@ -15,10 +15,10 @@
             padding-left: 100px;
         }
 
-        .twitch-panel {
+        .settings-panel {
             align-content: center;
-            position: fixed;
             width: 500px;
+            height: 480px;
             margin: 4px;
             /*top: 50%;
             left: 50%;
@@ -29,7 +29,7 @@
 </head>
 <body>
 
-    <div class="panel twitch-panel">
+    <div class="panel settings-panel">
         <div class="panel-header">
             <div class="panel-title">Twitch</div>
         </div>
@@ -57,17 +57,10 @@
                 </div>
             </form>
         </div>
-        <!--<div class="panel-body">
-            <form id="twitch-form" class="form-horizontal form-group" method="post" action="submit">
-               
-
-            </form>
-        </div>-->
         <div class="panel-footer">
-            <button class="btn my-2 float-right" form="twitch-form">Save</button>
+            <button class="btn my-2 mx-2 float-right" form="twitch-form">Save</button>
         </div>
     </div>
-
 
     <script>
         let idCounter = document.getElementById("channel-container").getElementsByTagName("input").length;

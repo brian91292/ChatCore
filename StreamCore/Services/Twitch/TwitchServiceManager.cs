@@ -10,6 +10,8 @@ namespace StreamCore.Services.Twitch
     public class TwitchServiceManager : IStreamingServiceManager, IDisposable
     {
         public bool IsRunning { get; private set; } = false;
+        public HashSet<Assembly> RegisteredAssemblies => new HashSet<Assembly>();
+        private object _lock = new object();
 
         public TwitchServiceManager(ILogger<TwitchServiceManager> logger, TwitchService twitchService)
         {
@@ -20,33 +22,48 @@ namespace StreamCore.Services.Twitch
         private ILogger _logger;
         private TwitchService _twitchService;
 
-        public void Start()
+        public void Start(Assembly assembly)
         {
-            if (IsRunning)
+            lock (_lock)
             {
-                return;
+                RegisteredAssemblies.Add(assembly);
+                if (IsRunning)
+                {
+                    return;
+                }
+                _twitchService.Start();
+                IsRunning = true;
+                _logger.LogInformation("Started");
             }
-            _twitchService.Start();
-            IsRunning = true;
-            _logger.LogInformation("Started");
         }
 
-        public void Stop()
+        public void Stop(Assembly assembly)
         {
-            if (!IsRunning)
+            lock (_lock)
             {
-                return;
+                if (!IsRunning)
+                {
+                    return;
+                }
+                if (assembly != null)
+                {
+                    RegisteredAssemblies.Remove(assembly);
+                    if (RegisteredAssemblies.Count > 0)
+                    {
+                        return;
+                    }
+                }
+                _twitchService.Stop();
+                IsRunning = false;
+                _logger.LogInformation("Stopped");
             }
-            _twitchService.Stop();
-            IsRunning = false;
-            _logger.LogInformation("Stopped");
         }
 
         public void Dispose()
         {
             if(IsRunning)
             {
-                Stop();
+                Stop(null);
             }
             _logger.LogInformation("Disposed");
         }

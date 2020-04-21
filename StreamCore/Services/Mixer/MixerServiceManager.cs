@@ -2,14 +2,16 @@
 using StreamCore.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace StreamCore.Services.Mixer
 {
     public class MixerServiceManager : IStreamingServiceManager, IDisposable
     {
-
-        public event Action<IChatMessage> OnMessageReceived;
+        public bool IsRunning { get; private set; } = false;
+        public HashSet<Assembly> RegisteredAssemblies => new HashSet<Assembly>();
+        private object _lock = new object();
 
         public MixerServiceManager(ILogger<MixerServiceManager> logger, MixerService mixerService)
         {
@@ -20,33 +22,48 @@ namespace StreamCore.Services.Mixer
         private ILogger _logger;
         private MixerService _mixerService;
 
-        public bool IsRunning { get; private set; } = false;
-
-        public void Start()
+        public void Start(Assembly assembly)
         {
-            if (IsRunning)
+            lock (_lock)
             {
-                return;
+                RegisteredAssemblies.Add(assembly);
+                if (IsRunning)
+                {
+                    return;
+                }
+                // TODO: run mixer service
+                IsRunning = true;
+                _logger.LogInformation("Started");
             }
-            IsRunning = true;
-            _logger.LogInformation("Started");
         }
 
-        public void Stop()
+        public void Stop(Assembly assembly)
         {
-            if (!IsRunning)
+            lock (_lock)
             {
-                return;
+                if (!IsRunning)
+                {
+                    return;
+                }
+                if(assembly != null)
+                {
+                    RegisteredAssemblies.Remove(assembly);
+                    if(RegisteredAssemblies.Count > 0)
+                    {
+                        return;
+                    }
+                }
+                // TODO: shutdown mixer service
+                IsRunning = false;
+                _logger.LogInformation("Stopped");
             }
-            IsRunning = false;
-            _logger.LogInformation("Stopped");
         }
 
         public void Dispose()
         {
             if (IsRunning)
             {
-                Stop();
+                Stop(null);
             }
             _logger.LogInformation("Disposed");
         }

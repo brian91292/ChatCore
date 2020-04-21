@@ -10,8 +10,19 @@ namespace StreamCore.Services
     public class StreamingServiceManager : IStreamingServiceManager, IDisposable
     {
         public bool IsRunning { get; set; } = false;
-
-        public event Action<IChatMessage> OnMessageReceived;
+        public HashSet<Assembly> RegisteredAssemblies
+        {
+            get
+            {
+                HashSet<Assembly> assemblies = new HashSet<Assembly>();
+                foreach(var service in _streamServiceManagers)
+                {
+                    assemblies.UnionWith(service.RegisteredAssemblies);
+                }
+                return assemblies;
+            }
+        }
+        private object _lock = new object();
 
         public StreamingServiceManager(ILogger<StreamingServiceManager> logger, IStreamingService streamingService, IList<IStreamingServiceManager> streamServiceManagers)
         {
@@ -24,20 +35,20 @@ namespace StreamCore.Services
         private IList<IStreamingServiceManager> _streamServiceManagers;
         private IStreamingService _streamingService;
 
-        public void Start()
+        public void Start(Assembly assembly)
         {
             foreach (var service in _streamServiceManagers)
             {
-                service.Start();
+                service.Start(assembly);
             }
             _logger.LogInformation($"Streaming services have been started");
         }
 
-        public void Stop()
+        public void Stop(Assembly assembly)
         {
             foreach (var service in _streamServiceManagers)
             {
-                service.Stop();
+                service.Stop(assembly);
             }
             _logger.LogInformation($"Streaming services have been stopped");
         }
@@ -46,7 +57,7 @@ namespace StreamCore.Services
         {
             foreach(var service in _streamServiceManagers)
             {
-                service.Stop();
+                service.Stop(null);
             }
             _logger.LogInformation("Disposed");
         }

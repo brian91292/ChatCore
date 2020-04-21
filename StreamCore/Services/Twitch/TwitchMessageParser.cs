@@ -201,7 +201,7 @@ namespace StreamCore.Services.Twitch
                                             }
                                             else if (_twitchDataProvider.TryGetThirdPartyEmote(lastWord, messageChannelName, out var emoteData))
                                             {
-                                                if (emoteData.Type == "BTTV" && _settings.ParseBTTVEmotes || emoteData.Type == "FFZ" && _settings.ParseFFZEmotes)
+                                                if (emoteData.Type.StartsWith("BTTV") && _settings.ParseBTTVEmotes || emoteData.Type.StartsWith("FFZ") && _settings.ParseFFZEmotes)
                                                 {
                                                     messageEmotes.Add(new TwitchEmote()
                                                     {

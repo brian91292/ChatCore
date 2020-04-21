@@ -154,5 +154,38 @@
             This should only be set to true if the Twitch server would rebroadcast this message to other external clients as a response to the message.
             </param>
         </member>
+        <member name="M:StreamCore.StreamCoreInstance.RunAllServices">
+            <summary>
+            Starts all services if they haven't been already.
+            </summary>
+            <returns>A reference to the generic service multiplexer</returns>
+        </member>
+        <member name="M:StreamCore.StreamCoreInstance.StopAllServices">
+            <summary>
+            Stops all services as long as no references remain. Make sure to unregister any callbacks first!
+            </summary>
+        </member>
+        <member name="M:StreamCore.StreamCoreInstance.RunTwitchServices">
+            <summary>
+            Starts the Twitch services if they haven't been already.
+            </summary>
+            <returns>A reference to the Twitch service</returns>
+        </member>
+        <member name="M:StreamCore.StreamCoreInstance.StopTwitchServices">
+            <summary>
+            Stops the Twitch services as long as no references remain. Make sure to unregister any callbacks first!
+            </summary>
+        </member>
+        <member name="M:StreamCore.StreamCoreInstance.RunMixerServices">
+            <summary>
+            Starts the Mixer services if they haven't been already.
+            </summary>
+            <returns>A reference to the Mixer service</returns>
+        </member>
+        <member name="M:StreamCore.StreamCoreInstance.StopMixerServices">
+            <summary>
+            Stops the Mixer services as long as no references remain. Make sure to unregister any callbacks first!
+            </summary>
+        </member>
     </members>
 </doc>

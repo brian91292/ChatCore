@@ -19,6 +19,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
 using StreamCore.Config;
+using System.Collections.Concurrent;
 
 namespace StreamCore
 {
@@ -96,6 +97,10 @@ namespace StreamCore
         }
 
         private object _runLock = new object();
+        /// <summary>
+        /// Starts all services if they haven't been already.
+        /// </summary>
+        /// <returns>A reference to the generic service multiplexer</returns>
         public StreamingService RunAllServices()
         {
             lock (_runLock)
@@ -105,11 +110,24 @@ namespace StreamCore
                     throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
                 }
                 var services = _serviceProvider.GetService<IStreamingServiceManager>();
-                services.Start();
+                services.Start(Assembly.GetCallingAssembly());
                 return services.GetService() as StreamingService;
             }
         }
-
+        /// <summary>
+        /// Stops all services as long as no references remain. Make sure to unregister any callbacks first!
+        /// </summary>
+        public void StopAllServices()
+        {
+            lock (_runLock)
+            {
+                _serviceProvider.GetService<IStreamingServiceManager>().Stop(Assembly.GetCallingAssembly());
+            }
+        }
+        /// <summary>
+        /// Starts the Twitch services if they haven't been already.
+        /// </summary>
+        /// <returns>A reference to the Twitch service</returns>
         public TwitchService RunTwitchServices()
         {
             lock (_runLock)
@@ -119,11 +137,24 @@ namespace StreamCore
                     throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
                 }
                 var twitch = _serviceProvider.GetService<TwitchServiceManager>();
-                twitch.Start();
+                twitch.Start(Assembly.GetCallingAssembly());
                 return twitch.GetService() as TwitchService;
             }
         }
-
+        /// <summary>
+        /// Stops the Twitch services as long as no references remain. Make sure to unregister any callbacks first!
+        /// </summary>
+        public void StopTwitchServices()
+        {
+            lock (_runLock)
+            {
+                _serviceProvider.GetService<TwitchServiceManager>().Stop(Assembly.GetCallingAssembly());
+            }
+        }
+        /// <summary>
+        /// Starts the Mixer services if they haven't been already.
+        /// </summary>
+        /// <returns>A reference to the Mixer service</returns>
         public MixerService RunMixerServices()
         {
             lock (_runLock)
@@ -133,8 +164,26 @@ namespace StreamCore
                     throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
                 }
                 var mixer = _serviceProvider.GetService<MixerServiceManager>();
-                mixer.Start();
+                mixer.Start(Assembly.GetCallingAssembly());
                 return mixer.GetService() as MixerService;
+            }
+        }
+        /// <summary>
+        /// Stops the Mixer services as long as no references remain. Make sure to unregister any callbacks first!
+        /// </summary>
+        public void StopMixerServices()
+        {
+            lock (_runLock)
+            {
+                _serviceProvider.GetService<MixerServiceManager>().Stop(Assembly.GetCallingAssembly());
+            }
+        }
+
+        private void TryShutdownService(IStreamingServiceManager service)
+        {
+            lock (_runLock)
+            {
+                service.Stop(Assembly.GetCallingAssembly());
             }
         }
     }

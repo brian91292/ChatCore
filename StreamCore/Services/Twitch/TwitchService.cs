@@ -114,6 +114,10 @@ namespace StreamCore.Services.Twitch
                 {
                     foreach (TwitchMessage twitchMessage in parsedMessages)
                     {
+                        if(assembly != null)
+                        {
+                            twitchMessage.Sender = LoggedInUser;
+                        }
                         var twitchChannel = (twitchMessage.Channel as TwitchChannel);
                         if (twitchChannel.Roomstate == null)
                         {

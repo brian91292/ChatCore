@@ -48,7 +48,9 @@ namespace ChatCore
                     serviceCollection
                         .AddLogging(builder =>
                         {
+#if DEBUG
                             builder.AddConsole();
+#endif
                             builder.AddProvider(new CustomSinkProvider(_instance));
                         })
                         .AddSingleton<Random>()

@@ -76,7 +76,7 @@ namespace StreamCore.Services.Twitch
                     continue;
                 }
 
-                //_logger.LogInformation($"Message: {match.Value}");
+                _logger.LogInformation($"Message: {match.Value}");
 
                 string messageType = match.Groups["MessageType"].Value;
                 string messageText = match.Groups["Message"].Success ? match.Groups["Message"].Value : "";
@@ -313,15 +313,21 @@ namespace StreamCore.Services.Twitch
                                 systemMessage.Emotes = new IChatEmote[0];
                                 messages.Add(systemMessage);
                                 break;
-                            case "sub":
-                            case "resub":
+                            //case "sub":
+                            //case "resub":
+                            //case "raid":
+                            default:
+                                _logger.LogInformation($"Message: {match.Value}");
                                 if (messageMeta.TryGetValue("system-msg", out var systemMsgText))
                                 {
+                                    systemMessage = (TwitchMessage)newMessage.Clone();
+                                    systemMsgText = systemMsgText.Replace(@"\s", " ");
+                                    systemMessage.IsHighlighted = true;
+                                    systemMessage.IsSystemMessage = true;
+
                                     //_logger.LogInformation($"Message: {match.Value}");
                                     if (messageMeta.TryGetValue("msg-param-sub-plan", out var subPlanName))
                                     {
-                                        systemMessage = (TwitchMessage)newMessage.Clone();
-                                        systemMsgText = systemMsgText.Replace(@"\s", " ");
                                         if (subPlanName == "Prime")
                                         {
                                             systemMessage.Message = $"👑  {systemMsgText}";
@@ -330,10 +336,28 @@ namespace StreamCore.Services.Twitch
                                         {
                                             systemMessage.Message = $"⭐  {systemMsgText}";
                                         }
-                                        systemMessage.IsHighlighted = true;
                                         systemMessage.Emotes = _emojiParser.FindEmojis(systemMessage.Message).ToArray();
-                                        messages.Add(systemMessage);
                                     }
+                                    else if(messageMeta.TryGetValue("msg-param-profileImageURL", out var profileImage) && messageMeta.TryGetValue("msg-param-login", out var loginUser))
+                                    {
+                                        var emoteId = $"ProfileImage_{loginUser}";
+                                        systemMessage.Emotes = new IChatEmote[]
+                                        {
+                                            new TwitchEmote()
+                                            {
+                                                Id = emoteId,
+                                                Name = $"[{emoteId}]",
+                                                Uri = profileImage,
+                                                StartIndex = 0,
+                                                EndIndex = emoteId.Length + 1,
+                                                IsAnimated = false,
+                                                Bits = 0,
+                                                Color = ""
+                                            } 
+                                        };
+                                        systemMessage.Message = $"{systemMessage.Emotes[0].Name}  {systemMsgText}";
+                                    }
+                                    messages.Add(systemMessage);
                                 }
                                 newMessage.IsSystemMessage = false;
                                 if (string.IsNullOrEmpty(newMessage.Message))

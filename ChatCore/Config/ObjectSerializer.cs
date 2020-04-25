@@ -180,6 +180,12 @@ namespace ChatCore.Config
                     // Otherwise, read the value in with the appropriate handler
                     var fieldInfo = obj.GetType().GetField(name.Replace(".","_"));
 
+                    if(fieldInfo == null)
+                    {
+                        // Skip missing fields, incase one was changed or removed.
+                        continue;
+                    }
+
                     // If the fieldType is an enum, replace it with the generic Enum type
                     Type fieldType = fieldInfo.FieldType.IsEnum ? typeof(Enum) : fieldInfo.FieldType;
 

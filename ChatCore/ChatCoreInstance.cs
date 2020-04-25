@@ -192,13 +192,5 @@ namespace ChatCore
                 _serviceProvider.GetService<MixerServiceManager>().Stop(Assembly.GetCallingAssembly());
             }
         }
-
-        private void TryShutdownService(IChatServiceManager service)
-        {
-            lock (_runLock)
-            {
-                service.Stop(Assembly.GetCallingAssembly());
-            }
-        }
     }
 }

@@ -49,7 +49,7 @@ namespace ChatCore
                         .AddLogging(builder =>
                         {
                             builder.AddConsole();
-                            //builder.AddProvider(new CustomSinkProvider(_instance));
+                            builder.AddProvider(new CustomSinkProvider(_instance));
                         })
                         .AddSingleton<Random>()
                         .AddTransient<HttpClient>()

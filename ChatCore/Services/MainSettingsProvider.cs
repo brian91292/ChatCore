@@ -11,8 +11,10 @@ namespace ChatCore.Services
     public class MainSettingsProvider
     {
         [ConfigSection("WebApp")]
-        [ConfigMeta(Comment = "When enabled, the webapp will launched automatically at runtime.")]
-        public bool RunWebApp = true;
+        [ConfigMeta(Comment = "Set to false to disable the webapp entirely.")]
+        public bool WebAppEnabled = true;
+        [ConfigMeta(Comment = "Whether or not to launch the webapp in your default browser when ChatCore is started.")]
+        public bool LaunchWebAppOnStartup = true;
         [ConfigMeta(Comment = "The port the webapp will run on.")]
         public int WebAppPort = 8338;
 

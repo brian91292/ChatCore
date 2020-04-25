@@ -90,10 +90,15 @@ namespace ChatCore
                         .AddSingleton<IEmojiParser, FrwTwemojiParser>()
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
-                    if (_serviceProvider.GetService<MainSettingsProvider>().RunWebApp)
+
+                    var settings = _serviceProvider.GetService<MainSettingsProvider>();
+                    if (settings.WebAppEnabled)
                     {
                         _serviceProvider.GetService<IWebLoginProvider>().Start();
-                        //System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
+                        if (settings.LaunchWebAppOnStartup)
+                        {
+                            System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
+                        }
                     }
                 }
                 return _instance;

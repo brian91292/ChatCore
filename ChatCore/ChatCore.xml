@@ -37,6 +37,11 @@
             Stops the Mixer services as long as no references remain. Make sure to unregister any callbacks first!
             </summary>
         </member>
+        <member name="M:ChatCore.ChatCoreInstance.LaunchWebApp">
+            <summary>
+            Launches the settings WebApp in the users default browser.
+            </summary>
+        </member>
         <member name="M:ChatCore.Config.ConfigBase`1.#ctor(System.String,System.String,System.Boolean)">
             <summary>
             A base config class that can be used to quickly and easily implement config files with a variety of data types.

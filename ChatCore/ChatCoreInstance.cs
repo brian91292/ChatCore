@@ -196,5 +196,20 @@ namespace ChatCore
                 _serviceProvider.GetService<MixerServiceManager>().Stop(Assembly.GetCallingAssembly());
             }
         }
+
+        /// <summary>
+        /// Launches the settings WebApp in the users default browser.
+        /// </summary>
+        public void LaunchWebApp()
+        {
+            lock (_runLock)
+            {
+                if (_serviceProvider == null)
+                {
+                    throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
+                }
+                System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
+            }
+        }
     }
 }

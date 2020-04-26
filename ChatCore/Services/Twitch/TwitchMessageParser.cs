@@ -80,10 +80,11 @@ namespace ChatCore.Services.Twitch
                 string messageType = match.Groups["MessageType"].Value;
                 string messageText = match.Groups["Message"].Success ? match.Groups["Message"].Value : "";
                 string messageChannelName = match.Groups["ChannelName"].Success ? match.Groups["ChannelName"].Value.Trim(new char[] { '#' }) : "";
+                string messageRoomId = "";
 
-                if (!channelInfo.TryGetValue(messageChannelName, out var channel))
+                if (channelInfo.TryGetValue(messageChannelName, out var channel))
                 {
-                    //_logger.LogWarning($"Channel info has not been set yet for channel {messageChannelName}");
+                    messageRoomId = channel.AsTwitchChannel().Roomstate?.RoomId;
                 }
 
                 try
@@ -113,7 +114,7 @@ namespace ChatCore.Services.Twitch
                         userBadges = badgeStr.Split(',').Aggregate(new List<IChatBadge>(), (list, m) =>
                         {
                             var badgeId = m.Replace("/", "");
-                            if (_twitchDataProvider.TryGetBadgeInfo(badgeId, messageChannelName, out var badgeInfo))
+                            if (_twitchDataProvider.TryGetBadgeInfo(badgeId, messageRoomId, out var badgeInfo))
                             {
                                 list.Add(new TwitchBadge()
                                 {

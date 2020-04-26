@@ -61,6 +61,10 @@ namespace ChatCore
                         .AddSingleton<TwitchServiceManager>()
                         .AddSingleton<TwitchMessageParser>()
                         .AddSingleton<TwitchDataProvider>()
+                        .AddSingleton<TwitchCheermoteProvider>()
+                        .AddSingleton<TwitchBadgeProvider>()
+                        .AddSingleton<BTTVDataProvider>()
+                        .AddSingleton<FFZDataProvider>()
                         .AddSingleton<MixerService>()
                         .AddSingleton<MixerServiceManager>()
                         .AddSingleton<IChatService>(x =>

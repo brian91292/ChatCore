@@ -9,372 +9,123 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using ChatCore.Models;
+using System.Threading;
 
 namespace ChatCore.Services.Twitch
 {
-    internal class TwitchChannelResource
-    {
-        public Dictionary<string, TwitchImageData> TwitchBadges;
-        public Dictionary<string, TwitchImageData> BTTVEmotes;
-        public Dictionary<string, TwitchImageData> FFZEmotes;
-        public Dictionary<string, TwitchCheermoteData> TwitchCheermotes;
-    }
-
     public class TwitchDataProvider
     {
-        private const string TWITCH_CLIENT_ID = "jg6ij5z8mf8jr8si22i5uq8tobnmde";
+        internal const string TWITCH_CLIENT_ID = "jg6ij5z8mf8jr8si22i5uq8tobnmde";
 
-        public TwitchDataProvider(ILogger<TwitchDataProvider> logger, HttpClient httpClient)
+        public TwitchDataProvider(ILogger<TwitchDataProvider> logger, TwitchBadgeProvider twitchBadgeProvider, TwitchCheermoteProvider twitchCheermoteProvider, BTTVDataProvider bttvDataProvider, FFZDataProvider ffzDataProvider)
         {
             _logger = logger;
-            _httpClient = httpClient;
+            _twitchBadgeProvider = twitchBadgeProvider;
+            _twitchCheermoteProvider = twitchCheermoteProvider;
+            _bttvDataProvider = bttvDataProvider;
+            _ffzDataProvider = ffzDataProvider;
         }
 
         private ILogger _logger;
-        private HttpClient _httpClient;
+        private TwitchBadgeProvider _twitchBadgeProvider;
+        private TwitchCheermoteProvider _twitchCheermoteProvider;
+        private BTTVDataProvider _bttvDataProvider;
+        private FFZDataProvider _ffzDataProvider;
 
-        internal Dictionary<string, TwitchChannelResource> TwitchChannelResources = new Dictionary<string, TwitchChannelResource>();
-        internal Dictionary<string, TwitchImageData> TwitchGlobalBadges;
-
-        internal Dictionary<string, TwitchImageData> BTTVGlobalEmotes;
-        internal Dictionary<string, TwitchImageData> FFZGlobalEmotes;
-
-        private object _lock = new object();
+        private HashSet<string> _channelDataCached = new HashSet<string>();
+        private SemaphoreSlim _globalLock = new SemaphoreSlim(1,1), _channelLock = new SemaphoreSlim(1,1);
 
         public void TryRequestGlobalResources()
         {
-            lock (_lock)
+            Task.Run(async () =>
             {
-                if (TwitchGlobalBadges is null && BTTVGlobalEmotes is null && FFZGlobalEmotes is null)
+                await _globalLock.WaitAsync();
+                try
                 {
-                    TwitchGlobalBadges = new Dictionary<string, TwitchImageData>();
-                    BTTVGlobalEmotes = new Dictionary<string, TwitchImageData>();
-                    FFZGlobalEmotes = new Dictionary<string, TwitchImageData>();
-                    Task.Run(async () =>
-                    {
-                        try
-                        {
-                            using (HttpRequestMessage msg = new HttpRequestMessage(HttpMethod.Get, $"https://badges.twitch.tv/v1/badges/global/display"))
-                            {
-                                var resp = await _httpClient.SendAsync(msg);
-                                if (!resp.IsSuccessStatusCode)
-                                {
-                                    _logger.LogError($"Failed to receive global badge data. Status: {resp.StatusCode}, Error: {resp.Content.ReadAsStringAsync()}");
-                                    goto BTTV;
-                                }
-                                JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                                if (!json["badge_sets"].IsObject)
-                                {
-                                    _logger.LogError("badge_sets was not an object.");
-                                    goto BTTV;
-                                }
-
-                                foreach (KeyValuePair<string, JSONNode> kvp in json["badge_sets"])
-                                {
-                                    string badgeName = kvp.Key;
-                                    foreach (KeyValuePair<string, JSONNode> version in kvp.Value.AsObject["versions"].AsObject)
-                                    {
-                                        string badgeVersion = version.Key;
-                                        string finalName = $"{badgeName}{badgeVersion}";
-                                        string uri = version.Value.AsObject["image_url_4x"].Value;
-                                        //_logger.LogInformation($"Global Badge: {finalName}, URI: {uri}");
-                                        TwitchGlobalBadges.Add(finalName, new TwitchImageData() { Uri = uri, IsAnimated = false, Type = "TwitchGlobalBadge" });
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"An exception occurred while parsing Twitch global badges");
-                        }
-
-                    BTTV:
-                        try
-                        {
-                            using (HttpRequestMessage msg = new HttpRequestMessage(HttpMethod.Get, $"https://api.betterttv.net/2/emotes"))
-                            {
-                                var resp = await _httpClient.SendAsync(msg);
-                                if (!resp.IsSuccessStatusCode)
-                                {
-                                    _logger.LogError($"Failed to receive global BTTV emotes.");
-                                    goto FFZ;
-                                }
-
-                                JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                                if (!json["emotes"].IsArray)
-                                {
-                                    _logger.LogError("emotes was not an array.");
-                                    goto FFZ;
-                                }
-
-                                foreach (JSONObject o in json["emotes"].AsArray)
-                                {
-                                    string uri = $"https://cdn.betterttv.net/emote/{o["id"].Value}/3x";
-                                    //_logger.LogInformation($"BTTV Global Emote: {o["code"].Value}, URI: {uri}");
-                                    BTTVGlobalEmotes.Add(o["code"].Value, new TwitchImageData() { Uri = uri, IsAnimated = o["imageType"].Value == "gif", Type = "BTTVGlobalEmote" });
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"An exception occurred while parsing BTTV global emotes");
-                        }
-
-                    FFZ:
-                        try
-                        {
-                            using (HttpRequestMessage msg = new HttpRequestMessage(HttpMethod.Get, $"https://api.frankerfacez.com/v1/set/global"))
-                            {
-                                var resp = await _httpClient.SendAsync(msg);
-                                if (!resp.IsSuccessStatusCode)
-                                {
-                                    _logger.LogError($"Failed to receive global FFZ emotes.");
-                                    goto EXIT;
-                                }
-
-                                JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                                if (!json["sets"].IsObject)
-                                {
-                                    _logger.LogError("sets was not an object");
-                                    goto EXIT;
-                                }
-
-                                foreach (JSONObject o in json["sets"]["3"]["emoticons"].AsArray)
-                                {
-                                    JSONObject urls = o["urls"].AsObject;
-                                    string uri = urls[urls.Count - 1].Value;
-                                    //_logger.LogInformation($"FFZ Global Emote: {o["name"].Value}, URI: {uri} (all urls: {urls.Value})");
-                                    FFZGlobalEmotes.Add(o["name"].Value, new TwitchImageData() { Uri = uri, IsAnimated = false, Type = "FFZGlobalEmote" });
-                                }
-
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"An exception occurred while parsing FFZ global emotes");
-                        }
-
-                    EXIT:
-                        _logger.LogInformation("Finished caching global emotes.");
-                    });
+                    await _twitchBadgeProvider.TryRequestResources(null);
+                    await _bttvDataProvider.TryRequestResources(null);
+                    await _ffzDataProvider.TryRequestResources(null);
+                    //_logger.LogInformation("Finished caching global emotes/badges.");
                 }
-            }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"An exception occurred while trying to request global Twitch resources.");
+                }
+                finally
+                {
+                    _globalLock.Release();
+                }
+            });
         }
 
         public void TryRequestChannelResources(IChatChannel channel)
         {
-            lock (_lock)
+            Task.Run(async () =>
             {
-                if (channel != null && !TwitchChannelResources.ContainsKey(channel.Id))
+                await _channelLock.WaitAsync();
+                try
                 {
-                    _logger.LogInformation($"Requesting channel badges for {channel.Id}");
-
-                    var newChannelBadges = new Dictionary<string, TwitchImageData>();
-                    var newChannelCheermotes = new Dictionary<string, TwitchCheermoteData>();
-                    var newBTTVEmotes = new Dictionary<string, TwitchImageData>();
-                    var newFFZEmotes = new Dictionary<string, TwitchImageData>();
-                    var newChannelResources = new TwitchChannelResource()
+                    if (!_channelDataCached.Contains(channel.Id))
                     {
-                        TwitchBadges = newChannelBadges,
-                        TwitchCheermotes = newChannelCheermotes,
-                        BTTVEmotes = newBTTVEmotes,
-                        FFZEmotes = newFFZEmotes
-                    };
-                    TwitchChannelResources.Add(channel.Id, newChannelResources);
-                    Task.Run(async () =>
-                    {
-                        try
-                        {
-                            using (HttpRequestMessage msg = new HttpRequestMessage(HttpMethod.Get, $"https://badges.twitch.tv/v1/badges/channels/{channel.AsTwitchChannel().Roomstate.RoomId}/display"))
-                            {
-                                var resp = await _httpClient.SendAsync(msg);
-                                if (!resp.IsSuccessStatusCode)
-                                {
-                                    // TODO: figure out why this is failing sometimes
-                                    _logger.LogError($"Failed to receive channel badge data. Status: {resp.StatusCode}, RoomId: {channel.AsTwitchChannel().Roomstate.RoomId}, Error: {resp.Content.ReadAsStringAsync()}");
-                                    goto CHEERMOTES;
-                                }
-                                JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                                if (!json["badge_sets"].IsObject)
-                                {
-                                    _logger.LogError("badge_sets was not an object.");
-                                    goto CHEERMOTES;
-                                }
-                                foreach (KeyValuePair<string, JSONNode> kvp in json["badge_sets"])
-                                {
-                                    string badgeName = kvp.Key;
-                                    foreach (KeyValuePair<string, JSONNode> version in kvp.Value.AsObject["versions"].AsObject)
-                                    {
-                                        string badgeVersion = version.Key;
-                                        string finalName = $"{badgeName}{badgeVersion}";
-                                        string uri = version.Value.AsObject["image_url_4x"].Value;
-                                        //_logger.LogInformation($"Channel Badge: {finalName}, URI: {uri}");
-                                        newChannelBadges.Add(finalName, new TwitchImageData { Uri = uri, IsAnimated = false, Type = "TwitchChannelBadge" });
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"An exception occurred while parsing Twitch channel badges for {channel.Id}");
-                        }
-
-                    CHEERMOTES:
-                        try
-                        {
-                            using (HttpRequestMessage msg = new HttpRequestMessage(HttpMethod.Get, $"https://api.twitch.tv/v5/bits/actions?client_id={TWITCH_CLIENT_ID}&channel_id={channel.AsTwitchChannel().Roomstate.RoomId}&include_sponsored=1"))
-                            {
-                                var resp = await _httpClient.SendAsync(msg);
-                                if (!resp.IsSuccessStatusCode)
-                                {
-                                    // TODO: figure out why this is failing sometimes
-                                    _logger.LogError($"Failed to receive channel cheermote data. Status: {resp.StatusCode}, RoomId: {channel.AsTwitchChannel().Roomstate.RoomId}, Error: {resp.Content.ReadAsStringAsync()}");
-                                    goto BTTV;
-                                }
-                                JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                                if (!json["actions"].IsArray)
-                                {
-                                    _logger.LogError("badge_sets was not an object.");
-                                    goto BTTV;
-                                }
-                                foreach (JSONNode node in json["actions"].AsArray.Values)
-                                {
-                                    TwitchCheermoteData cheermote = new TwitchCheermoteData();
-                                    string prefix = node["prefix"].Value.ToLower();
-                                    foreach (JSONNode tier in node["tiers"].Values)
-                                    {
-                                        CheermoteTier newTier = new CheermoteTier();
-                                        newTier.MinBits = tier["min_bits"].AsInt;
-                                        newTier.Color = tier["color"].Value;
-                                        newTier.CanCheer = tier["can_cheer"].AsBool;
-                                        newTier.Uri = $"https://d3aqoihi2n8ty8.cloudfront.net/actions/{prefix}/dark/animated/{newTier.MinBits}/4.gif";
-                                        //_logger.LogInformation($"Cheermote: {prefix}{newTier.MinBits}, URI: {newTier.Uri}");
-                                        cheermote.Tiers.Add(newTier);
-                                    }
-                                    cheermote.Prefix = prefix;
-                                    cheermote.Tiers = cheermote.Tiers.OrderBy(t => t.MinBits).ToList();
-                                    newChannelCheermotes.Add(prefix, cheermote);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"An exception occurred while parsing Twitch channel cheermotes for {channel.Id}");
-                        }
-
-                    BTTV:
-                        try
-                        {
-                            using (HttpRequestMessage msg = new HttpRequestMessage(HttpMethod.Get, $"https://api.betterttv.net/2/channels/{channel.Id}"))
-                            {
-                                var resp = await _httpClient.SendAsync(msg);
-                                if (!resp.IsSuccessStatusCode)
-                                {
-                                    _logger.LogError($"Failed to receive BTTV emotes for channel {channel.Id}.");
-                                    goto FFZ;
-                                }
-
-                                JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                                if (!json["emotes"].IsArray)
-                                {
-                                    _logger.LogError($"emotes was not an array.");
-                                    goto FFZ;
-                                }
-
-                                foreach (JSONObject o in json["emotes"].AsArray)
-                                {
-                                    string uri = $"https://cdn.betterttv.net/emote/{o["id"].Value}/3x";
-                                    //_logger.LogInformation($"BTTV Channel Emote: {o["code"].Value}, URI: {uri}");
-                                    newBTTVEmotes.Add(o["code"].Value, new TwitchImageData() { Uri = uri, IsAnimated = o["imageType"].Value == "gif", Type = "BTTVChannelEmote" });
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"An exception occurred while parsing BTTV emotes for channel {channel.Id}");
-                        }
-
-                    FFZ:
-                        try
-                        {
-                            using (HttpRequestMessage msg = new HttpRequestMessage(HttpMethod.Get, $"https://api.frankerfacez.com/v1/room/{channel.Id}"))
-                            {
-                                var resp = await _httpClient.SendAsync(msg);
-                                if (!resp.IsSuccessStatusCode)
-                                {
-                                    _logger.LogError($"Failed to receive FFZ emotes for channel {channel.Id}.");
-                                    goto EXIT;
-                                }
-
-                                JSONNode json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                                if (!json["sets"].IsObject)
-                                {
-                                    _logger.LogError("sets was not an object");
-                                    goto EXIT;
-                                }
-
-                                foreach (JSONObject o in json["sets"][json["room"]["set"].ToString()]["emoticons"].AsArray)
-                                {
-                                    JSONObject urls = o["urls"].AsObject;
-                                    string uri = urls[urls.Count - 1].Value;
-                                    //_logger.LogInformation($"FFZ Channel Emote: {o["name"].Value}, URI: {uri} (all urls: {urls.Value})");
-                                    newFFZEmotes.Add(o["name"].Value, new TwitchImageData() { Uri = uri, IsAnimated = false, Type = "FFZChannelEmote" });
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"An exception occurred while parsing FFZ emotes for channel {channel.Id}");
-                        }
-                    EXIT:
-                        _logger.LogInformation($"Finished caching emotes for channel {channel.Id}.");
-                    });
+                        string roomId = channel.AsTwitchChannel().Roomstate.RoomId;
+                        await _twitchBadgeProvider.TryRequestResources(roomId);
+                        await _twitchCheermoteProvider.TryRequestResources(roomId);
+                        await _bttvDataProvider.TryRequestResources(channel.Id);
+                        await _ffzDataProvider.TryRequestResources(channel.Id);
+                        _channelDataCached.Add(channel.Id);
+                        //_logger.LogInformation($"Finished caching emotes for channel {channel.Id}.");
+                    }
                 }
-            }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"An exception occurred while trying to request Twitch channel resources for {channel.Id}.");
+                }
+                finally
+                {
+                    _channelLock.Release();
+                }
+            });
         }
 
-        internal bool TryGetThirdPartyEmote(string word, string channel, out TwitchImageData data)
+        public async void TryReleaseChannelResources(IChatChannel channel)
         {
-            bool isEmote = false;
-            if (BTTVGlobalEmotes != null && BTTVGlobalEmotes.TryGetValue(word, out data))
+            await _channelLock.WaitAsync();
+            try
             {
-                //_logger.LogInformation($"BTTV Global Emote: {lastWord}");
-                isEmote = true;
+                // TODO: readd a way to actually clear channel resources
+                _channelDataCached.Remove(channel.Id);
             }
-            else if (FFZGlobalEmotes != null && FFZGlobalEmotes.TryGetValue(word, out data))
+            catch (Exception ex)
             {
-                //_logger.LogInformation($"FFZ Global Emote: {lastWord}");
-                isEmote = true;
+                _logger.LogError(ex, $"An exception occurred while trying to release Twitch channel resources for {channel.Id}.");
             }
-            else if (TwitchChannelResources.TryGetValue(channel, out var channelResources))
+            finally
             {
-                if (channelResources.BTTVEmotes.TryGetValue(word, out data))
-                {
-                    //_logger.LogInformation($"BTTV Channel Emote: {lastWord}");
-                    isEmote = true;
-                }
-                else if (channelResources.FFZEmotes.TryGetValue(word, out data))
-                {
-                    //_logger.LogInformation($"FFZ Channel Emote: {lastWord}");
-                    isEmote = true;
-                }
-                else
-                {
-                    data = new TwitchImageData();
-                }
+                _channelLock.Release();
             }
-            else
-            {
-                data = new TwitchImageData();
-            }
-            return isEmote;
         }
 
-        internal bool TryGetCheermote(string word, string channel, out TwitchCheermoteData data, out int numBits)
+
+        internal bool TryGetThirdPartyEmote(string word, string channel, out ChatResourceData data)
+        {
+            if (_bttvDataProvider.TryGetResource(word, channel, out data))
+            {
+                return true;
+            }
+            else if (_ffzDataProvider.TryGetResource(word, channel, out data))
+            {
+                return true;
+            }
+            data = null;
+            return false;
+        }
+
+        internal bool TryGetCheermote(string word, string roomId, out TwitchCheermoteData data, out int numBits)
         {
             numBits = 0;
             data = null;
-            if (channel == null || !TwitchChannelResources.TryGetValue(channel, out var channelResources))
+            if (string.IsNullOrEmpty(roomId))
             {
                 return false;
             }
@@ -396,7 +147,7 @@ namespace ChatCore.Services.Twitch
                 return false;
             }
             string prefix = word.Substring(0, prefixLength).ToLower();
-            if (!channelResources.TwitchCheermotes.TryGetValue(prefix, out data))
+            if (!_twitchCheermoteProvider.TryGetResource(prefix, roomId, out data))
             {
                 return false;
             }
@@ -404,40 +155,14 @@ namespace ChatCore.Services.Twitch
             return true;
         }
 
-        public void TryReleaseChannelResources(IChatChannel channel)
+        internal bool TryGetBadgeInfo(string badgeId, string roomid, out ChatResourceData badge)
         {
-            lock (_lock)
+            if(_twitchBadgeProvider.TryGetResource(badgeId, roomid, out badge))
             {
-                if (channel != null && TwitchChannelResources.TryGetValue(channel.Id, out var channelResources))
-                {
-                    channelResources.BTTVEmotes.Clear();
-                    channelResources.FFZEmotes.Clear();
-                    channelResources.TwitchBadges.Clear();
-                    TwitchChannelResources.Remove(channel.Id);
-                }
+                return true;
             }
-        }
-
-        internal bool TryGetBadgeInfo(string badgeId, string channel, out TwitchImageData badge)
-        {
             badge = null;
-            if (!string.IsNullOrEmpty(channel))
-            {
-                if (TwitchChannelResources.TryGetValue(channel, out var channelResources) && channelResources.TwitchBadges.TryGetValue(badgeId, out var channelBadge))
-                {
-                    badge = channelBadge;
-                }
-            }
-            if (badge == null && TwitchGlobalBadges != null && TwitchGlobalBadges.TryGetValue(badgeId, out var globalBadge))
-            {
-                badge = globalBadge;
-            }
-            return badge != null;
+            return false;
         }
-
-        //public async Task<bool> RequestDataForChannel(string channel, int roomId)
-        //{
-
-        //}
     }
 }

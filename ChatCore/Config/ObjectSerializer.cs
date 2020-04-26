@@ -345,10 +345,8 @@ namespace ChatCore.Config
                     if (lastConfigSection != null && currentSectionName != lastConfigSection)
                     {
                         // End the previous section and start a new one
-                        //currentSectionHtml.Add("</div>");
                         sectionHtml[lastConfigSection] = string.Join(Environment.NewLine, currentSectionHtml);
                         currentSectionHtml = new List<string>();
-                        //currentSectionHtml.Add("<div class=\"panel-body\">");
                     }
                     currentSectionHtml.Add($"<label class=\"form-label\">{currentSectionName.Uncamelcase()}</label>");
                     lastConfigSection = currentSectionName;
@@ -388,7 +386,6 @@ namespace ChatCore.Config
                     //Plugin.Log($"Failed to convert field {fieldInfo.Name} to string! Value type is {fieldInfo.FieldType.Name}. {ex.ToString()}");
                 }
             }
-            //currentSectionHtml.Add("</div>");
             sectionHtml[lastConfigSection] = string.Join(Environment.NewLine, currentSectionHtml);
             return sectionHtml;
         }
@@ -440,10 +437,10 @@ namespace ChatCore.Config
         private string BuildSwitchHTML(string name, bool b)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append($"<label class=\"form-switch\">" + Environment.NewLine);
-            sb.Append($"\t<input type=\"hidden\" value=\"off\" name=\"{name}\">" + Environment.NewLine);
-            sb.Append($"\t<input name=\"{name}\" type=\"checkbox\" {(b ? "checked" : "")}>" + Environment.NewLine);
-            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}" + Environment.NewLine);
+            sb.Append($"<label class=\"form-switch\">\r\n");
+            sb.Append($"\t<input type=\"hidden\" value=\"off\" name=\"{name}\">\r\n");
+            sb.Append($"\t<input name=\"{name}\" type=\"checkbox\" {(b ? "checked" : "")}>\r\n");
+            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}\r\n");
             sb.Append($"</label>");
             return sb.ToString();
         }
@@ -451,9 +448,9 @@ namespace ChatCore.Config
         private string BuildNumberHTML(string name, int i)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append($"<label class=\"form-label\">" + Environment.NewLine);
-            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}" + Environment.NewLine);
-            sb.Append($"<input name=\"{name}\" class=\"form-input\" type=\"number\" placeholder=\"00\" value=\"{i.ToString()}\">" + Environment.NewLine);
+            sb.Append($"<label class=\"form-label\">\r\n");
+            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}\r\n");
+            sb.Append($"\t<input name=\"{name}\" class=\"form-input\" type=\"number\" placeholder=\"00\" value=\"{i.ToString()}\">\r\n");
             sb.Append($"</label>");
             return sb.ToString();
         }
@@ -461,9 +458,9 @@ namespace ChatCore.Config
         private string BuildStringHTML(string name, string s)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append($"<label class=\"form-label\">" + Environment.NewLine);
-            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}" + Environment.NewLine);
-            sb.Append($"<input name=\"{name}\" class=\"form-input\" type=\"text\" placeholder=\"00\" value=\"{s}\">" + Environment.NewLine);
+            sb.Append($"<label class=\"form-label\">\r\n");
+            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}\r\n");
+            sb.Append($"\t<input name=\"{name}\" class=\"form-input\" type=\"text\" placeholder=\"00\" value=\"{s}\">\r\n");
             sb.Append($"</label>");
             return sb.ToString();
         }
@@ -471,9 +468,9 @@ namespace ChatCore.Config
         private string BuildUnknownHTML(string name, string s)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append($"<label class=\"form-label\">" + Environment.NewLine);
-            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}" + Environment.NewLine);
-            sb.Append($"<textarea name=\"name\" class=\"form-input\" placeholder=\"...\" rows=\"3\">{s}</textarea>" + Environment.NewLine);
+            sb.Append($"<label class=\"form-label\">\r\n");
+            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}\r\n");
+            sb.Append($"\t<textarea name=\"name\" class=\"form-input\" placeholder=\"...\" rows=\"3\">{s}</textarea>\r\n");
             sb.Append($"</label>");
             return sb.ToString();
         }

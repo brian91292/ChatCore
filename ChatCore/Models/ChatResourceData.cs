@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ChatCore.Models.Twitch
+namespace ChatCore.Models
 {
-    internal class TwitchImageData
+    public class ChatResourceData
     {
         public string Uri;
         public bool IsAnimated;

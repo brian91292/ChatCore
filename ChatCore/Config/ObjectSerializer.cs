@@ -39,6 +39,32 @@ namespace ChatCore.Config
             // Enum handlers
             ConvertFromString.TryAdd(typeof(Enum), (fieldInfo, value) => { return Enum.Parse(fieldInfo.FieldType, value); });
             ConvertToString.TryAdd(typeof(Enum), (fieldInfo, obj) => { return obj.GetFieldValue(fieldInfo.Name).ToString(); });
+
+            //      internal string[] Twitch_Channels_Array
+            //{
+            //    get
+            //    {
+            //        var ret = Twitch_Channels.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' });
+            //        if (ret.Length == 1 && string.IsNullOrEmpty(ret[0]))
+            //        {
+            //            return new string[0];
+            //        }
+            //        return ret;
+            //    }
+            //    set
+            //    {
+            //        Twitch_Channels = string.Join(",", value).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' });
+            //    }
+            //}
+
+            // List<string> handlers
+            ConvertFromString.TryAdd(typeof(List<string>), (fieldInfo, value) => { 
+                if(value.StartsWith("\"") && value.EndsWith("\"")) {
+                    value = value.Substring(1, value.Length - 2);
+                }
+                return new List<string>(value.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' })); 
+            });
+            ConvertToString.TryAdd(typeof(List<string>), (fieldInfo, obj) => { return string.Join(",", (List<string>)obj.GetFieldValue(fieldInfo.Name)).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }); });
         }
 
         private static bool CreateDynamicFieldConverter(FieldInfo fieldInfo)

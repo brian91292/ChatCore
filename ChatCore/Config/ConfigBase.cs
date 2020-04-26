@@ -18,6 +18,13 @@ namespace ChatCore.Config
         private bool _saveTriggersConfigChangedEvent = false;
         public event Action<T> OnConfigChanged;
 
+        /// <summary>
+        /// A base config class that can be used to quickly and easily implement config files with a variety of data types.
+        /// </summary>
+        /// <param name="configDirectory">The directory the config should be loaded from/saved to</param>
+        /// <param name="configName">The name of the config file, excluding a filetype (which will be .ini)</param>
+        /// <param name="saveTriggersConfigChangedEvent">If set to true, saving the config will trigger the OnConfigChanged event</param>
+        /// <param name="oldStreamCoreConfigPath">The p</param>
         public ConfigBase(string configDirectory, string configName, bool saveTriggersConfigChangedEvent = false)
         {
             _saveTriggersConfigChangedEvent = saveTriggersConfigChangedEvent;

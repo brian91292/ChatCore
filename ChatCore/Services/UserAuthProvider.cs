@@ -9,11 +9,21 @@ using ChatCore.Config;
 
 namespace ChatCore.Services
 {
+    class OldStreamCoreConfig
+    {
+        public string TwitchChannelName;
+        public string TwitchUsername;
+        public string TwitchOAuthToken;
+    }
+
     public class UserAuthProvider : IUserAuthProvider
     {
         public event Action<LoginCredentials> OnCredentialsUpdated;
 
         public LoginCredentials Credentials { get; } = new LoginCredentials();
+
+        // If this is set, old StreamCore config data will be read in from this file.
+        internal static string OldConfigPath = null;
 
         public UserAuthProvider(ILogger<UserAuthProvider> logger, IPathProvider pathProvider)
         {
@@ -22,6 +32,28 @@ namespace ChatCore.Services
             _credentialsPath = Path.Combine(_pathProvider.GetDataPath(), "auth.ini");
             _credentialSerializer = new ObjectSerializer();
             _credentialSerializer.Load(Credentials, _credentialsPath);
+
+            if (!string.IsNullOrEmpty(OldConfigPath) && File.Exists(OldConfigPath))
+            {
+                _logger.LogInformation($"Trying to convert old StreamCore config at path {OldConfigPath}");
+                var old = new OldStreamCoreConfig();
+                _credentialSerializer.Load(old, OldConfigPath);
+                if(!string.IsNullOrEmpty(old.TwitchChannelName))
+                {
+                    var oldName = old.TwitchChannelName.ToLower().Replace(" ", "");
+                    if (!Credentials.Twitch_Channels.Contains(oldName))
+                    {
+                        Credentials.Twitch_Channels.Add(oldName);
+                        _logger.LogInformation($"Added channel {oldName} from old StreamCore config.");
+                    }
+                }
+                if(!string.IsNullOrEmpty(old.TwitchOAuthToken))
+                {
+                    Credentials.Twitch_OAuthToken = old.TwitchOAuthToken;
+                    _logger.LogInformation($"Pulled in old Twitch auth info from StreamCore config.");
+                }
+                File.Move(OldConfigPath, OldConfigPath + ".converted");
+            }
         }
 
         private ILogger _logger;

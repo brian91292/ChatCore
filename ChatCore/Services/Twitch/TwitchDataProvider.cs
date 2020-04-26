@@ -151,8 +151,10 @@ namespace ChatCore.Services.Twitch
             {
                 return false;
             }
-            numBits = int.TryParse(word.Substring(prefixLength), out var intVal) ? intVal : 0;
-            return true;
+            if (int.TryParse(word.Substring(prefixLength), out numBits)) {
+                return true;
+            }
+            return false;
         }
 
         internal bool TryGetBadgeInfo(string badgeId, string roomid, out ChatResourceData badge)

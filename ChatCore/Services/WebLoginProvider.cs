@@ -77,7 +77,7 @@ namespace ChatCore.Services
 
                                                 break;
                                             case "twitch_channel":
-                                                if (!string.IsNullOrWhiteSpace(split[1]))
+                                                if (!string.IsNullOrWhiteSpace(split[1]) && !_authManager.Credentials.Twitch_Channels.Contains(split[1]))
                                                 {
                                                     _logger.LogInformation($"Channel: {split[1]}");
                                                     twitchChannels.Add(split[1]);
@@ -90,8 +90,7 @@ namespace ChatCore.Services
                                         _logger.LogError(ex, "An exception occurred in OnLoginDataUpdated callback");
                                     }
                                 }
-
-                                _authManager.Credentials.Twitch_Channels_Array = twitchChannels.ToArray();
+                                
                                 _authManager.Save();
                                 _settings.SetFromDictionary(postDict);
                                 _settings.Save();
@@ -104,14 +103,14 @@ namespace ChatCore.Services
                         {
                             StringBuilder pageBuilder = new StringBuilder(pageData);
                             StringBuilder channelHtmlString = new StringBuilder();
-                            for (int i = 0; i < _authManager.Credentials.Twitch_Channels_Array.Length; i++)
+                            for (int i = 0; i < _authManager.Credentials.Twitch_Channels.Count; i++)
                             {
                                 //<span id="twitch_channel_1" class="chip">
                                 //  ChannelName
                                 //  <input type="text" class="form-input" name="twitch_channel" style="display:none;" value="yeeter" />
                                 //  <button type="button" onclick="removeChannel('twitch_channel_1')" class="btn btn-clear" aria-label="Close" role="button"></button>
                                 //</span>
-                                var channel = _authManager.Credentials.Twitch_Channels_Array[i];
+                                var channel = _authManager.Credentials.Twitch_Channels[i];
                                 channelHtmlString.Append($"<span id=\"twitch_channel_{i}\" class=\"chip \">{channel}<input type=\"text\" class=\"form-input\" name=\"twitch_channel\" style=\"display: none; \" value=\"{channel}\" /><button type=\"button\" onclick=\"removeChannel('twitch_channel_{i}')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\"></button></span>");
                             }
                             var sectionHTML = _settings.GetSettingsAsHTML();

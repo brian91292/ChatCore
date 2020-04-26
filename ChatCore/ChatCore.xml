@@ -37,6 +37,15 @@
             Stops the Mixer services as long as no references remain. Make sure to unregister any callbacks first!
             </summary>
         </member>
+        <member name="M:ChatCore.Config.ConfigBase`1.#ctor(System.String,System.String,System.Boolean)">
+            <summary>
+            A base config class that can be used to quickly and easily implement config files with a variety of data types.
+            </summary>
+            <param name="configDirectory">The directory the config should be loaded from/saved to</param>
+            <param name="configName">The name of the config file, excluding a filetype (which will be .ini)</param>
+            <param name="saveTriggersConfigChangedEvent">If set to true, saving the config will trigger the OnConfigChanged event</param>
+            <param name="oldStreamCoreConfigPath">The p</param>
+        </member>
         <member name="M:ChatCore.Config.ObjectSerializer.GetSettingsAsHTML(System.Object)">
             <summary>
             Returns a dictionary containing HTML representing each config section.

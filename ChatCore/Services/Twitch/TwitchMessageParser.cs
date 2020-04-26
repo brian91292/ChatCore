@@ -180,7 +180,7 @@ namespace ChatCore.Services.Twitch
                                         if (!foundTwitchEmotes.Contains(lastWord))
                                         {
                                             // Make sure we haven't already matched a Twitch emote with the same string, just incase the user has a BTTV/FFZ emote with the same name
-                                            if (_settings.ParseCheermotes && messageBits > 0 && _twitchDataProvider.TryGetCheermote(lastWord, messageChannelName, out var cheermoteData, out var numBits) && numBits > 0)
+                                            if (_settings.ParseCheermotes && messageBits > 0 && _twitchDataProvider.TryGetCheermote(lastWord, messageRoomId, out var cheermoteData, out var numBits) && numBits > 0)
                                             {
                                                 //_logger.LogInformation($"Got cheermote! Total message bits: {messageBits}");
                                                 var tier = cheermoteData.GetTier(numBits);

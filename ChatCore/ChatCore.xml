@@ -37,6 +37,20 @@
             Stops the Mixer services as long as no references remain. Make sure to unregister any callbacks first!
             </summary>
         </member>
+        <member name="M:ChatCore.Config.ObjectSerializer.GetSettingsAsHTML(System.Object)">
+            <summary>
+            Returns a dictionary containing HTML representing each config section.
+            </summary>
+            <param name="obj">The object to serialize into HTML</param>
+            <returns></returns>
+        </member>
+        <member name="M:ChatCore.Config.ObjectSerializer.SetFromDictionary(System.Object,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Sets class values from a web post request
+            </summary>
+            <param name="obj"></param>
+            <param name="postData"></param>
+        </member>
         <member name="P:ChatCore.Interfaces.IChatMessage.Id">
             <summary>
             The internal identifier for this chat message

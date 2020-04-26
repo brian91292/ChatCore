@@ -62,16 +62,19 @@ namespace ChatCore.Services
                             {
                                 string postStr = reader.ReadToEnd();
                                 List<string> twitchChannels = new List<string>();
+
+                                Dictionary<string, string> postDict = new Dictionary<string, string>();
                                 foreach (var postData in postStr.Split('&'))
                                 {
                                     try
                                     {
                                         var split = postData.Split('=');
+                                        postDict[split[0]] = split[1];
+
                                         switch (split[0])
                                         {
                                             case "twitch_oauthtoken":
-                                                var twitchOauthToken = HttpUtility.UrlDecode(split[1]);
-                                                _authManager.Credentials.Twitch_OAuthToken = twitchOauthToken.StartsWith("oauth:") ? twitchOauthToken : !string.IsNullOrEmpty(twitchOauthToken) ? $"oauth:{twitchOauthToken}" : "";
+
                                                 break;
                                             case "twitch_channel":
                                                 if (!string.IsNullOrWhiteSpace(split[1]))
@@ -87,8 +90,11 @@ namespace ChatCore.Services
                                         _logger.LogError(ex, "An exception occurred in OnLoginDataUpdated callback");
                                     }
                                 }
+
                                 _authManager.Credentials.Twitch_Channels_Array = twitchChannels.ToArray();
                                 _authManager.Save();
+                                _settings.SetFromDictionary(postDict);
+                                _settings.Save();
                             }
                             resp.Redirect(req.UrlReferrer.OriginalString);
                             resp.Close();
@@ -96,6 +102,7 @@ namespace ChatCore.Services
                         }
                         try
                         {
+                            StringBuilder pageBuilder = new StringBuilder(pageData);
                             StringBuilder channelHtmlString = new StringBuilder();
                             for (int i = 0; i < _authManager.Credentials.Twitch_Channels_Array.Length; i++)
                             {
@@ -107,7 +114,14 @@ namespace ChatCore.Services
                                 var channel = _authManager.Credentials.Twitch_Channels_Array[i];
                                 channelHtmlString.Append($"<span id=\"twitch_channel_{i}\" class=\"chip \">{channel}<input type=\"text\" class=\"form-input\" name=\"twitch_channel\" style=\"display: none; \" value=\"{channel}\" /><button type=\"button\" onclick=\"removeChannel('twitch_channel_{i}')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\"></button></span>");
                             }
-                            byte[] data = Encoding.UTF8.GetBytes(pageData.Replace("{TwitchChannelHtml}", channelHtmlString.ToString()).Replace("{TwitchOAuthToken}", _authManager.Credentials.Twitch_OAuthToken));
+                            var sectionHTML = _settings.GetSettingsAsHTML();
+                            pageBuilder.Replace("{WebAppSettingsHTML}", sectionHTML["WebApp"]);
+                            pageBuilder.Replace("{GlobalSettingsHTML}", sectionHTML["Global"]);
+                            pageBuilder.Replace("{TwitchSettingsHTML}", sectionHTML["Twitch"]);
+                            pageBuilder.Replace("{TwitchChannelHtml}", channelHtmlString.ToString());
+                            pageBuilder.Replace("{TwitchOAuthToken}", _authManager.Credentials.Twitch_OAuthToken);
+
+                            byte[] data = Encoding.UTF8.GetBytes(pageBuilder.ToString());
                             resp.ContentType = "text/html";
                             resp.ContentEncoding = Encoding.UTF8;
                             resp.ContentLength64 = data.LongLength;

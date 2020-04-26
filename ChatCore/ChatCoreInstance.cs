@@ -92,7 +92,7 @@ namespace ChatCore
                     _serviceProvider = serviceCollection.BuildServiceProvider();
 
                     var settings = _serviceProvider.GetService<MainSettingsProvider>();
-                    if (settings.WebAppEnabled)
+                    if (!settings.DisableWebApp)
                     {
                         _serviceProvider.GetService<IWebLoginProvider>().Start();
                         if (settings.LaunchWebAppOnStartup)

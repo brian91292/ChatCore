@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ChatCore.Models.Twitch
 {
-    internal class CheermoteTier
+    public class CheermoteTier
     {
         public string Uri;
         public int MinBits;
@@ -12,7 +12,7 @@ namespace ChatCore.Models.Twitch
         public bool CanCheer;
     }
 
-    internal class TwitchCheermoteData
+    public class TwitchCheermoteData
     {
         public string Prefix;
         public List<CheermoteTier> Tiers = new List<CheermoteTier>();

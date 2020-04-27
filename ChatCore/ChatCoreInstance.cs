@@ -48,8 +48,10 @@ namespace ChatCore
                     serviceCollection
                         .AddLogging(builder =>
                         {
+#if DEBUG
                             builder.AddConsole();
-                            //builder.AddProvider(new CustomSinkProvider(_instance));
+#endif
+                            builder.AddProvider(new CustomSinkProvider(_instance));
                         })
                         .AddSingleton<Random>()
                         .AddTransient<HttpClient>()
@@ -59,6 +61,10 @@ namespace ChatCore
                         .AddSingleton<TwitchServiceManager>()
                         .AddSingleton<TwitchMessageParser>()
                         .AddSingleton<TwitchDataProvider>()
+                        .AddSingleton<TwitchCheermoteProvider>()
+                        .AddSingleton<TwitchBadgeProvider>()
+                        .AddSingleton<BTTVDataProvider>()
+                        .AddSingleton<FFZDataProvider>()
                         .AddSingleton<MixerService>()
                         .AddSingleton<MixerServiceManager>()
                         .AddSingleton<IChatService>(x =>
@@ -88,10 +94,15 @@ namespace ChatCore
                         .AddSingleton<IEmojiParser, FrwTwemojiParser>()
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
-                    if (_serviceProvider.GetService<MainSettingsProvider>().RunWebApp)
+
+                    var settings = _serviceProvider.GetService<MainSettingsProvider>();
+                    if (!settings.DisableWebApp)
                     {
                         _serviceProvider.GetService<IWebLoginProvider>().Start();
-                        //System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
+                        if (settings.LaunchWebAppOnStartup)
+                        {
+                            System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
+                        }
                     }
                 }
                 return _instance;
@@ -186,11 +197,18 @@ namespace ChatCore
             }
         }
 
-        private void TryShutdownService(IChatServiceManager service)
+        /// <summary>
+        /// Launches the settings WebApp in the users default browser.
+        /// </summary>
+        public void LaunchWebApp()
         {
             lock (_runLock)
             {
-                service.Stop(Assembly.GetCallingAssembly());
+                if (_serviceProvider == null)
+                {
+                    throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
+                }
+                System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
             }
         }
     }

@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>StreamCore v3 Login</title>
+    <title>ChatCore Settings</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectre.css/0.5.8/spectre.min.css">
     <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
     <style type="text/css">
@@ -17,50 +17,73 @@
 
         .settings-panel {
             align-content: center;
-            width: 500px;
-            height: 480px;
-            margin: 4px;
+            width: 454px;
+            height: 540px;
+            margin-bottom: 16px;
             /*top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             overflow: visible;*/
         }
+
+        .main {
+            margin-top: 10px;
+            margin-left: 7px;
+            margin-right: 7px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="panel settings-panel">
-        <div class="panel-header">
-            <div class="panel-title">Twitch</div>
-        </div>
-        <div class="panel-nav">
-            <!-- navigation components: tabs, breadcrumbs or pagination -->
-        </div>
-        <div class="panel-body">
-            <form id="twitch-form" class="form-horizontal form-group" method="post" action="submit">
-                <h3>Login</h3>
-                <label class="form-label" for="twitch_oauth_input">OAuth Token</label>
-                <div class="oauth_input">
-                    <input id="twitch_oauth_input" name="twitch_oauthtoken" class="form-input form-inline my-2" type="password" placeholder="oauth:12abc3defg4p678arw9aq2xasd0gwa43" value="{TwitchOAuthToken}">
+    <div class="container main">
+        <form id="twitch-form" class="form-horizontal form-group" method="post" action="submit">
+            <div class="columns">
+                <div class="column col-auto">
+                    <div class="panel settings-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Twitch Settings</div>
+                        </div>
+                        <div class="panel-body">
+                            <label class="form-label">Login</label>
+                            <div class="oauth_input">
+                                <input id="twitch_oauth_input" name="twitch_oauthtoken" class="form-input my-2" type="password" placeholder="oauth:12abc3defg4p678arw9aq2xasd0gwa43" value="{TwitchOAuthToken}">
+                            </div>
+                            <label class="form-checkbox">
+                                <input type="checkbox" onclick="toggleTwitchOAuthVis()"><i class="form-icon"></i>Show
+                                (<a href="https://twitchapps.com/tmi/" target="_blank" class="text-center">Need an OAuth Token? Click here!</a>)
+                            </label>
+                            <br />
+
+                            <label class="form-label">Channels</label>
+                            <div id="channel-container" class="my-2">
+                                {TwitchChannelHtml}
+                                <span id="add_channel_button" class="chip">
+                                    <button id="add_channel_button" type="button" onclick="addChannel()" class="btn btn-link btn-sm" aria-label="Close" role="button">+</button>
+                                </span>
+                            </div>
+                            <br />
+                            {TwitchSettingsHTML}
+                        </div>
+                    </div>
                 </div>
-                <label class="form-checkbox form-inline">
-                    <input type="checkbox" onclick="toggleTwitchOAuthVis()"><i class="form-icon"></i>Show OAuth Token
-                    (<a href="https://twitchapps.com/tmi/" target="_blank" class="text-center">Need an OAuth Token? Click here!</a>)
-                </label>
-                <br /><br />
-                <h3>Channels</h3>
-                <div id="channel-container" class="my-2">
-                    {TwitchChannelHtml}
-                    <span id="add_channel_button" class="chip">
-                        <button id="add_channel_button" type="button" onclick="addChannel()" class="btn btn-link btn-sm" aria-label="Close" role="button">+</button>
-                    </span>
+                <div class="column col-auto">
+                    <div class="panel settings-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Global Settings</div>
+                        </div>
+                        <div class="panel-body">
+                            {WebAppSettingsHTML}<br />
+                            {GlobalSettingsHTML}
+                        </div>
+                        <div class="panel-footer">
+                            <button class="btn my-2 mx-2 float-right" form="twitch-form">Save</button>
+                        </div>
+                    </div>
                 </div>
-            </form>
-        </div>
-        <div class="panel-footer">
-            <button class="btn my-2 mx-2 float-right" form="twitch-form">Save</button>
-        </div>
+            </div>
+        </form>
     </div>
+
 
     <script>
         let idCounter = document.getElementById("channel-container").getElementsByTagName("input").length;

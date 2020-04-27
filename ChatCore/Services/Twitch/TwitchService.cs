@@ -134,7 +134,7 @@ namespace ChatCore.Services.Twitch
                                 _logger.LogInformation($"Logged into Twitch as {_loggedInUsername}");
                                 _websocketService.ReconnectDelay = 500;
                                 _onLoginCallbacks?.InvokeAll(assembly, this, _logger);
-                                foreach (var channel in _authManager.Credentials.Twitch_Channels_Array)
+                                foreach (var channel in _authManager.Credentials.Twitch_Channels)
                                 {
                                     JoinChannel(channel);
                                 }

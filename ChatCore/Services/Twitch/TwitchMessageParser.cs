@@ -80,10 +80,11 @@ namespace ChatCore.Services.Twitch
                 string messageType = match.Groups["MessageType"].Value;
                 string messageText = match.Groups["Message"].Success ? match.Groups["Message"].Value : "";
                 string messageChannelName = match.Groups["ChannelName"].Success ? match.Groups["ChannelName"].Value.Trim(new char[] { '#' }) : "";
+                string messageRoomId = "";
 
-                if (!channelInfo.TryGetValue(messageChannelName, out var channel))
+                if (channelInfo.TryGetValue(messageChannelName, out var channel))
                 {
-                    //_logger.LogWarning($"Channel info has not been set yet for channel {messageChannelName}");
+                    messageRoomId = channel.AsTwitchChannel().Roomstate?.RoomId;
                 }
 
                 try
@@ -113,7 +114,7 @@ namespace ChatCore.Services.Twitch
                         userBadges = badgeStr.Split(',').Aggregate(new List<IChatBadge>(), (list, m) =>
                         {
                             var badgeId = m.Replace("/", "");
-                            if (_twitchDataProvider.TryGetBadgeInfo(badgeId, messageChannelName, out var badgeInfo))
+                            if (_twitchDataProvider.TryGetBadgeInfo(badgeId, messageRoomId, out var badgeInfo))
                             {
                                 list.Add(new TwitchBadge()
                                 {
@@ -179,7 +180,7 @@ namespace ChatCore.Services.Twitch
                                         if (!foundTwitchEmotes.Contains(lastWord))
                                         {
                                             // Make sure we haven't already matched a Twitch emote with the same string, just incase the user has a BTTV/FFZ emote with the same name
-                                            if (_settings.ParseCheermotes && messageBits > 0 && _twitchDataProvider.TryGetCheermote(lastWord, messageChannelName, out var cheermoteData, out var numBits) && numBits > 0)
+                                            if (_settings.ParseCheermotes && messageBits > 0 && _twitchDataProvider.TryGetCheermote(lastWord, messageRoomId, out var cheermoteData, out var numBits) && numBits > 0)
                                             {
                                                 //_logger.LogInformation($"Got cheermote! Total message bits: {messageBits}");
                                                 var tier = cheermoteData.GetTier(numBits);
@@ -337,7 +338,7 @@ namespace ChatCore.Services.Twitch
                                         }
                                         systemMessage.Emotes = _emojiParser.FindEmojis(systemMessage.Message).ToArray();
                                     }
-                                    else if(messageMeta.TryGetValue("msg-param-profileImageURL", out var profileImage) && messageMeta.TryGetValue("msg-param-login", out var loginUser))
+                                    else if (messageMeta.TryGetValue("msg-param-profileImageURL", out var profileImage) && messageMeta.TryGetValue("msg-param-login", out var loginUser))
                                     {
                                         var emoteId = $"ProfileImage_{loginUser}";
                                         systemMessage.Emotes = new IChatEmote[]
@@ -352,10 +353,20 @@ namespace ChatCore.Services.Twitch
                                                 IsAnimated = false,
                                                 Bits = 0,
                                                 Color = ""
-                                            } 
+                                            }
                                         };
                                         systemMessage.Message = $"{systemMessage.Emotes[0].Name}  {systemMsgText}";
                                     }
+                                    messages.Add(systemMessage);
+                                }
+                                else
+                                {
+                                    // If there's no system message, the message must be the actual message.
+                                    // In this case we wipe out the original message and skip it.
+                                    systemMessage = (TwitchMessage)newMessage.Clone();
+                                    systemMessage.IsHighlighted = true;
+                                    systemMessage.IsSystemMessage = true;
+                                    newMessage.Message = "";
                                     messages.Add(systemMessage);
                                 }
                                 newMessage.IsSystemMessage = false;

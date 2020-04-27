@@ -33,12 +33,38 @@ namespace ChatCore.Config
             });
 
             // Bool handlers
-            ConvertFromString.TryAdd(typeof(bool), (fieldInfo, value) => { return (value.Equals("true", StringComparison.CurrentCultureIgnoreCase) || value.Equals("1")); });
+            ConvertFromString.TryAdd(typeof(bool), (fieldInfo, value) => { return (value.Equals("true", StringComparison.CurrentCultureIgnoreCase) || value.Equals("on", StringComparison.CurrentCultureIgnoreCase) || value.Equals("1")); });
             ConvertToString.TryAdd(typeof(bool), (fieldInfo, obj) => { return ((bool)obj.GetFieldValue(fieldInfo.Name)).ToString(); });
 
             // Enum handlers
             ConvertFromString.TryAdd(typeof(Enum), (fieldInfo, value) => { return Enum.Parse(fieldInfo.FieldType, value); });
             ConvertToString.TryAdd(typeof(Enum), (fieldInfo, obj) => { return obj.GetFieldValue(fieldInfo.Name).ToString(); });
+
+            //      internal string[] Twitch_Channels_Array
+            //{
+            //    get
+            //    {
+            //        var ret = Twitch_Channels.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' });
+            //        if (ret.Length == 1 && string.IsNullOrEmpty(ret[0]))
+            //        {
+            //            return new string[0];
+            //        }
+            //        return ret;
+            //    }
+            //    set
+            //    {
+            //        Twitch_Channels = string.Join(",", value).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' });
+            //    }
+            //}
+
+            // List<string> handlers
+            ConvertFromString.TryAdd(typeof(List<string>), (fieldInfo, value) => { 
+                if(value.StartsWith("\"") && value.EndsWith("\"")) {
+                    value = value.Substring(1, value.Length - 2);
+                }
+                return new List<string>(value.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' })); 
+            });
+            ConvertToString.TryAdd(typeof(List<string>), (fieldInfo, obj) => { return string.Join(",", (List<string>)obj.GetFieldValue(fieldInfo.Name)).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }); });
         }
 
         private static bool CreateDynamicFieldConverter(FieldInfo fieldInfo)
@@ -138,7 +164,7 @@ namespace ChatCore.Config
             }
             return false;
         }
-
+        
         public void Load(object obj, string path)
         {
             if (ConvertFromString.Count == 0)
@@ -179,6 +205,12 @@ namespace ChatCore.Config
 
                     // Otherwise, read the value in with the appropriate handler
                     var fieldInfo = obj.GetType().GetField(name.Replace(".","_"));
+
+                    if(fieldInfo == null)
+                    {
+                        // Skip missing fields, incase one was changed or removed.
+                        continue;
+                    }
 
                     // If the fieldType is an enum, replace it with the generic Enum type
                     Type fieldType = fieldInfo.FieldType.IsEnum ? typeof(Enum) : fieldInfo.FieldType;
@@ -290,6 +322,183 @@ namespace ChatCore.Config
                     File.Delete(path);
                 File.Move(tmpPath, path);
             }
+        }
+
+        /// <summary>
+        /// Returns a dictionary containing HTML representing each config section.
+        /// </summary>
+        /// <param name="obj">The object to serialize into HTML</param>
+        /// <returns></returns>
+        public Dictionary<string, string> GetSettingsAsHTML(object obj)
+        {
+            if (ConvertToString.Count == 0)
+                InitTypeHandlers();
+
+            string lastConfigSection = null;
+            Dictionary<string, string> sectionHtml = new Dictionary<string, string>();
+            List<string> currentSectionHtml = new List<string>();
+            string currentSectionName = "";
+            //currentSectionHtml.Add("<div class=\"panel-body\">");
+
+            // TODO: serialize comments as tooltips?
+            //var configHeader = (ConfigHeader)obj.GetType().GetCustomAttribute(typeof(ConfigHeader));
+            //if (configHeader != null)
+            //{
+            //    foreach (string comment in configHeader.Comment)
+            //    {
+            //        serializedClass.Add(string.IsNullOrWhiteSpace(comment) ? comment : $"// {comment}");
+            //    }
+            //}
+
+            foreach (var fieldInfo in obj.GetType().GetFields())
+            {
+                // If the fieldType is an enum, replace it with the generic Enum type
+                Type fieldType = fieldInfo.FieldType.IsEnum ? typeof(Enum) : fieldInfo.FieldType;
+
+                // Invoke our convertFromString method if it exists
+                if (!ConvertToString.TryGetValue(fieldType, out var convertToString))
+                {
+                    if (CreateDynamicFieldConverter(fieldInfo))
+                    {
+                        convertToString = ConvertToString[fieldType];
+                    }
+                }
+
+                var configSection = (ConfigSection)fieldInfo.GetCustomAttribute(typeof(ConfigSection));
+                if (configSection != null && !string.IsNullOrEmpty(configSection.Name))
+                {
+                    currentSectionName = configSection.Name;
+                    if (lastConfigSection != null && currentSectionName != lastConfigSection)
+                    {
+                        // End the previous section and start a new one
+                        sectionHtml[lastConfigSection] = string.Join(Environment.NewLine, currentSectionHtml);
+                        currentSectionHtml = new List<string>();
+                    }
+                    currentSectionHtml.Add($"<label class=\"form-label\">{currentSectionName.Uncamelcase()}</label>");
+                    lastConfigSection = currentSectionName;
+                }
+
+                if (fieldInfo.GetCustomAttribute(typeof(HTMLIgnore)) != null)
+                {
+                    // Skip any fields with the HTMLIgnore attribute
+                    continue;
+                }
+
+                var configMeta = (ConfigMeta)fieldInfo.GetCustomAttribute(typeof(ConfigMeta));
+                string valueStr = "";
+                try
+                {
+                    string comment = null;
+                    if (!_comments.TryGetValue(fieldInfo.Name, out comment))
+                    {
+                        // If the user hasn't entered any of their own comments, use the default one of it exists
+                        if (configMeta != null && !string.IsNullOrEmpty(configMeta.Comment))
+                        {
+                            comment = configMeta.Comment;
+                        }
+                    }
+
+                    currentSectionHtml.Add(obj.GetFieldValue(fieldInfo.Name) switch
+                    {
+                        bool b => BuildSwitchHTML(fieldInfo.Name, b),
+                        int i => BuildNumberHTML(fieldInfo.Name, i),
+                        string s => BuildStringHTML(fieldInfo.Name, s),
+                        _ => BuildUnknownHTML(fieldInfo.Name, $"{convertToString.Invoke(fieldInfo, obj)}{(comment != null ? " //" + comment : "")}"),
+                    });
+                }
+                catch (Exception ex)
+                {
+                    //throw;
+                    //Plugin.Log($"Failed to convert field {fieldInfo.Name} to string! Value type is {fieldInfo.FieldType.Name}. {ex.ToString()}");
+                }
+            }
+            sectionHtml[lastConfigSection] = string.Join(Environment.NewLine, currentSectionHtml);
+            return sectionHtml;
+        }
+
+        /// <summary>
+        /// Sets class values from a web post request
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="postData"></param>
+        public void SetFromDictionary(object obj, Dictionary<string, string> postData)
+        {
+            if (ConvertFromString.Count == 0)
+                InitTypeHandlers();
+
+            foreach (KeyValuePair<string, string> kvp in postData)
+            {
+                // Otherwise, read the value in with the appropriate handler
+                var fieldInfo = obj.GetType().GetField(kvp.Key.Replace(".", "_"));
+
+                if (fieldInfo == null)
+                {
+                    // Skip missing fields, incase one was changed or removed.
+                    continue;
+                }
+
+                // If the fieldType is an enum, replace it with the generic Enum type
+                Type fieldType = fieldInfo.FieldType.IsEnum ? typeof(Enum) : fieldInfo.FieldType;
+
+                // Invoke our ConvertFromString method if it exists
+                if (!ConvertFromString.TryGetValue(fieldType, out var convertFromString))
+                {
+                    if (CreateDynamicFieldConverter(fieldInfo))
+                    {
+                        convertFromString = ConvertFromString[fieldType];
+                    }
+                }
+                try
+                {
+                    object converted = convertFromString.Invoke(fieldInfo, kvp.Value);
+                    fieldInfo.SetValue(obj, converted);
+                }
+                catch (Exception ex)
+                {
+                    //Plugin.Log($"Failed to parse field {name} with value {value} as type {fieldInfo.FieldType.Name}. {ex.ToString()}");
+                }
+            }
+        }
+
+        private string BuildSwitchHTML(string name, bool b)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"<label class=\"form-switch\">\r\n");
+            sb.Append($"\t<input type=\"hidden\" value=\"off\" name=\"{name}\">\r\n");
+            sb.Append($"\t<input name=\"{name}\" type=\"checkbox\" {(b ? "checked" : "")}>\r\n");
+            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}\r\n");
+            sb.Append($"</label>");
+            return sb.ToString();
+        }
+
+        private string BuildNumberHTML(string name, int i)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"<label class=\"form-label\">\r\n");
+            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}\r\n");
+            sb.Append($"\t<input name=\"{name}\" class=\"form-input\" type=\"number\" placeholder=\"00\" value=\"{i.ToString()}\">\r\n");
+            sb.Append($"</label>");
+            return sb.ToString();
+        }
+
+        private string BuildStringHTML(string name, string s)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"<label class=\"form-label\">\r\n");
+            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}\r\n");
+            sb.Append($"\t<input name=\"{name}\" class=\"form-input\" type=\"text\" placeholder=\"00\" value=\"{s}\">\r\n");
+            sb.Append($"</label>");
+            return sb.ToString();
+        }
+
+        private string BuildUnknownHTML(string name, string s)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"<label class=\"form-label\">\r\n");
+            sb.Append($"\t<i class=\"form-icon\"></i> {name.Uncamelcase()}\r\n");
+            sb.Append($"\t<textarea name=\"name\" class=\"form-input\" placeholder=\"...\" rows=\"3\">{s}</textarea>\r\n");
+            sb.Append($"</label>");
+            return sb.ToString();
         }
     }
 }

@@ -5,14 +5,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Numerics;
 
 namespace ChatCore.Services
 {
     public class MainSettingsProvider
     {
         [ConfigSection("WebApp")]
-        [ConfigMeta(Comment = "When enabled, the webapp will launched automatically at runtime.")]
-        public bool RunWebApp = true;
+        [HTMLIgnore]
+        [ConfigMeta(Comment = "Set to true to disable the webapp entirely.")]
+        public bool DisableWebApp = false;
+        [ConfigMeta(Comment = "Whether or not to launch the webapp in your default browser when ChatCore is started.")]
+        public bool LaunchWebAppOnStartup = true;
         [ConfigMeta(Comment = "The port the webapp will run on.")]
         public int WebAppPort = 8338;
 
@@ -29,7 +33,6 @@ namespace ChatCore.Services
         public bool ParseTwitchEmotes = true;
         [ConfigMeta(Comment = "When enabled, Twitch cheermotes will be parsed.")]
         public bool ParseCheermotes = true;
-
 
         public MainSettingsProvider(ILogger<MainSettingsProvider> logger, IPathProvider pathProvider)
         {
@@ -48,6 +51,16 @@ namespace ChatCore.Services
         public void Save()
         {
             _configSerializer.Save(this, Path.Combine(_pathProvider.GetDataPath(), "settings.ini"));
+        }
+
+        public Dictionary<string, string> GetSettingsAsHTML()
+        {
+            return _configSerializer.GetSettingsAsHTML(this);
+        }
+
+        public void SetFromDictionary(Dictionary<string, string> postData)
+        {
+            _configSerializer.SetFromDictionary(this, postData);
         }
     }
 }

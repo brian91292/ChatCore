@@ -83,14 +83,17 @@ namespace ChatCore.Services
                                 switch (split[0])
                                 {
                                     case "twitch_oauthtoken":
-
+                                        var twitchOauthToken = HttpUtility.UrlDecode(split[1]);
+                                        _authManager.Credentials.Twitch_OAuthToken = twitchOauthToken.StartsWith("oauth:") ? twitchOauthToken : !string.IsNullOrEmpty(twitchOauthToken) ? $"oauth:{twitchOauthToken}" : "";
                                         break;
                                     case "twitch_channel":
-                                        if (!string.IsNullOrWhiteSpace(split[1]) && !_authManager.Credentials.Twitch_Channels.Contains(split[1]))
+                                        string channel = split[1].ToLower();
+                                        if (!string.IsNullOrWhiteSpace(channel) && !_authManager.Credentials.Twitch_Channels.Contains(channel))
                                         {
-                                            _logger.LogInformation($"Channel: {split[1]}");
-                                            twitchChannels.Add(split[1]);
+                                            _authManager.Credentials.Twitch_Channels.Add(channel);
                                         }
+                                        _logger.LogInformation($"Channel: {channel}");
+                                        twitchChannels.Add(channel);
                                         break;
                                 }
                             }
@@ -99,7 +102,14 @@ namespace ChatCore.Services
                                 _logger.LogError(ex, "An exception occurred in OnLoginDataUpdated callback");
                             }
                         }
-
+                        foreach(var channel in _authManager.Credentials.Twitch_Channels.ToArray())
+                        {
+                            // Remove any channels that weren't present in the post data
+                            if(!twitchChannels.Contains(channel))
+                            {
+                                _authManager.Credentials.Twitch_Channels.Remove(channel);
+                            }
+                        }
                         _authManager.Save();
                         _settings.SetFromDictionary(postDict);
                         _settings.Save();

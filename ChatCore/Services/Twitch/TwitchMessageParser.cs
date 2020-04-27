@@ -338,7 +338,7 @@ namespace ChatCore.Services.Twitch
                                         }
                                         systemMessage.Emotes = _emojiParser.FindEmojis(systemMessage.Message).ToArray();
                                     }
-                                    else if(messageMeta.TryGetValue("msg-param-profileImageURL", out var profileImage) && messageMeta.TryGetValue("msg-param-login", out var loginUser))
+                                    else if (messageMeta.TryGetValue("msg-param-profileImageURL", out var profileImage) && messageMeta.TryGetValue("msg-param-login", out var loginUser))
                                     {
                                         var emoteId = $"ProfileImage_{loginUser}";
                                         systemMessage.Emotes = new IChatEmote[]
@@ -353,10 +353,20 @@ namespace ChatCore.Services.Twitch
                                                 IsAnimated = false,
                                                 Bits = 0,
                                                 Color = ""
-                                            } 
+                                            }
                                         };
                                         systemMessage.Message = $"{systemMessage.Emotes[0].Name}  {systemMsgText}";
                                     }
+                                    messages.Add(systemMessage);
+                                }
+                                else
+                                {
+                                    // If there's no system message, the message must be the actual message.
+                                    // In this case we wipe out the original message and skip it.
+                                    systemMessage = (TwitchMessage)newMessage.Clone();
+                                    systemMessage.IsHighlighted = true;
+                                    systemMessage.IsSystemMessage = true;
+                                    newMessage.Message = "";
                                     messages.Add(systemMessage);
                                 }
                                 newMessage.IsSystemMessage = false;

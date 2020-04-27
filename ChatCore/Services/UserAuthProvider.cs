@@ -52,7 +52,15 @@ namespace ChatCore.Services
                     Credentials.Twitch_OAuthToken = old.TwitchOAuthToken;
                     _logger.LogInformation($"Pulled in old Twitch auth info from StreamCore config.");
                 }
-                File.Move(OldConfigPath, OldConfigPath + ".converted");
+                var convertedPath = OldConfigPath + ".converted";
+                if (!File.Exists(convertedPath))
+                {
+                    File.Move(OldConfigPath, convertedPath);
+                }
+                else
+                {
+                    File.Delete(OldConfigPath);
+                }
             }
         }
 

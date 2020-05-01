@@ -155,6 +155,11 @@
             Callback that occurs when a specific chat message is cleared. Argument is the message id to be cleared.
             </summary>
         </member>
+        <member name="E:ChatCore.Interfaces.IChatService.OnChannelResourceDataCached">
+            <summary>
+            Fired once all known resources have been cached for this channel
+            </summary>
+        </member>
         <member name="M:ChatCore.Interfaces.IChatService.SendTextMessage(System.String,ChatCore.Interfaces.IChatChannel)">
             <summary>
             Sends a text message to the specified IChatChannel

@@ -59,7 +59,8 @@ namespace ChatCore.Services.Twitch
             });
         }
 
-        public void TryRequestChannelResources(IChatChannel channel)
+
+        public void TryRequestChannelResources(IChatChannel channel, Action<Dictionary<string, IChatResourceData>> OnChannelResourceDataCached)
         {
             Task.Run(async () =>
             {
@@ -73,6 +74,32 @@ namespace ChatCore.Services.Twitch
                         await _twitchCheermoteProvider.TryRequestResources(roomId);
                         await _bttvDataProvider.TryRequestResources(channel.Id);
                         await _ffzDataProvider.TryRequestResources(channel.Id);
+
+                        Dictionary<string, IChatResourceData> ret = new Dictionary<string, IChatResourceData>();
+                        _twitchBadgeProvider.Resources.ToList().ForEach(x =>
+                        {
+                            var parts = x.Key.Split(new char[] { '_' }, 2);
+                            ret[$"{x.Value.Type}_{(parts.Length > 1 ? parts[1] : parts[0])}"] = x.Value;
+                        });
+                        _twitchCheermoteProvider.Resources.ToList().ForEach(x =>
+                        {
+                            var parts = x.Key.Split(new char[] { '_' }, 2);
+                            foreach (var tier in x.Value.Tiers)
+                            {
+                                ret[$"{tier.Type}_{(parts.Length > 1 ? parts[1] : parts[0])}{tier.MinBits}"] = tier;
+                            }
+                        });
+                        _bttvDataProvider.Resources.ToList().ForEach(x =>
+                        {
+                            var parts = x.Key.Split(new char[] { '_' }, 2);
+                            ret[$"{x.Value.Type}_{(parts.Length > 1 ? parts[1] : parts[0])}"] = x.Value;
+                        });
+                        _ffzDataProvider.Resources.ToList().ForEach(x =>
+                        {
+                            var parts = x.Key.Split(new char[] { '_' }, 2);
+                            ret[$"{x.Value.Type}_{(parts.Length > 1 ? parts[1] : parts[0])}"] = x.Value;
+                        });
+                        OnChannelResourceDataCached?.Invoke(ret);
                         _channelDataCached.Add(channel.Id);
                         //_logger.LogInformation($"Finished caching emotes for channel {channel.Id}.");
                     }
@@ -94,6 +121,7 @@ namespace ChatCore.Services.Twitch
             try
             {
                 // TODO: readd a way to actually clear channel resources
+                _logger.LogInformation($"Releasing resources for channel {channel.Id}");
                 _channelDataCached.Remove(channel.Id);
             }
             catch (Exception ex)

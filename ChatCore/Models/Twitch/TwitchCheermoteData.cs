@@ -1,15 +1,18 @@
-﻿using System;
+﻿using ChatCore.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace ChatCore.Models.Twitch
 {
-    public class CheermoteTier
+    public class CheermoteTier : IChatResourceData
     {
-        public string Uri;
-        public int MinBits;
-        public string Color;
-        public bool CanCheer;
+        public string Uri { get; internal set; }
+        public int MinBits { get; internal set; }
+        public string Color { get; internal set; }
+        public bool CanCheer { get; internal set; }
+        public bool IsAnimated { get; internal set; } = true;
+        public string Type { get; internal set; } = "TwitchCheermote";
     }
 
     public class TwitchCheermoteData

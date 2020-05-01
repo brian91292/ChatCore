@@ -178,7 +178,10 @@ namespace ChatCore.Services.Twitch
                                 continue;
                             case "ROOMSTATE":
                                 _channels[twitchMessage.Channel.Id] = twitchMessage.Channel;
-                                _twitchDataProvider.TryRequestChannelResources(twitchMessage.Channel);
+                                _twitchDataProvider.TryRequestChannelResources(twitchMessage.Channel, (resources) =>
+                                {
+                                    _onChannelResourceDataCached?.InvokeAll(assembly, this, twitchMessage.Channel, resources);
+                                });
                                 _onRoomStateUpdatedCallbacks?.InvokeAll(assembly, this, twitchMessage.Channel, _logger);
                                 continue;
                             case "USERSTATE":

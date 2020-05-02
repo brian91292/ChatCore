@@ -8,7 +8,8 @@ namespace ChatCore.Models.Twitch
     public class TwitchUser : IChatUser
     {
         public string Id { get; internal set; }
-        public string Name { get; internal set; }
+        public string UserName { get; internal set; }
+        public string DisplayName { get; internal set; }
         public string Color { get; internal set; }
         public bool IsModerator { get; internal set; }
         public bool IsBroadcaster { get; internal set; }

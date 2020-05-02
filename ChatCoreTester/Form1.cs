@@ -64,7 +64,7 @@ namespace StreamCoreTester
 
         private void StreamServiceProvider_OnMessageReceived(IChatService svc, IChatMessage msg)
         {
-            Console.WriteLine($"{msg.Sender.Name}: {msg.Message}");
+            Console.WriteLine($"{msg.Sender.DisplayName}: {msg.Message}");
             //Console.WriteLine($"Bytes: {BitConverter.ToString(Encoding.UTF32.GetBytes(msg.Message))}");
             //Console.WriteLine("Badges: ");
             //foreach (var badge in msg.Sender.Badges)

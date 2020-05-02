@@ -154,7 +154,7 @@ namespace ChatCore.Services.Twitch
                                 continue;
                             case "JOIN":
                                 //_logger.LogInformation($"{twitchMessage.Sender.Name} JOINED {twitchMessage.Channel.Id}. LoggedInuser: {LoggedInUser.Name}");
-                                if (twitchMessage.Sender.Name == _loggedInUsername)
+                                if (twitchMessage.Sender.UserName == _loggedInUsername)
                                 {
                                     if (!_channels.ContainsKey(twitchMessage.Channel.Id))
                                     {
@@ -166,7 +166,7 @@ namespace ChatCore.Services.Twitch
                                 continue;
                             case "PART":
                                 //_logger.LogInformation($"{twitchMessage.Sender.Name} PARTED {twitchMessage.Channel.Id}. LoggedInuser: {LoggedInUser.Name}");
-                                if (twitchMessage.Sender.Name == _loggedInUsername)
+                                if (twitchMessage.Sender.UserName == _loggedInUsername)
                                 {
                                     if (_channels.TryRemove(twitchMessage.Channel.Id, out var channel))
                                     {
@@ -187,9 +187,9 @@ namespace ChatCore.Services.Twitch
                             case "USERSTATE":
                             case "GLOBALUSERSTATE":
                                 LoggedInUser = twitchMessage.Sender.AsTwitchUser();
-                                if(string.IsNullOrEmpty(LoggedInUser.Name))
+                                if(string.IsNullOrEmpty(LoggedInUser.DisplayName))
                                 {
-                                    LoggedInUser.Name = _loggedInUsername;
+                                    LoggedInUser.DisplayName = _loggedInUsername;
                                 }
                                 continue;
                             case "CLEARCHAT":

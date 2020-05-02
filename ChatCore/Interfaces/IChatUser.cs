@@ -7,7 +7,8 @@ namespace ChatCore.Interfaces
     public interface IChatUser
     {
         string Id { get; }
-        string Name { get; }
+        string UserName { get; }
+        string DisplayName { get; }
         string Color { get; }
         bool IsBroadcaster { get; }
         bool IsModerator { get; }

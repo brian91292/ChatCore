@@ -258,15 +258,17 @@ namespace ChatCore.Services.Twitch
                         }
                     }
 
-                    string messageSenderName = messageMeta.TryGetValue("display-name", out var name) ? name : match.Groups["HostName"].Success ? match.Groups["HostName"].Value.Split('!')[0] : "";
+                    string userName = match.Groups["HostName"].Success ? match.Groups["HostName"].Value.Split('!')[0] : "";
+                    string displayName = messageMeta.TryGetValue("display-name", out var name) ? name : userName;
                     var newMessage = new TwitchMessage()
                     {
                         Id = messageMeta.TryGetValue("id", out var messageId) ? messageId : "", // TODO: default id of some sort?
                         Sender = new TwitchUser()
                         {
                             Id = messageMeta.TryGetValue("user-id", out var uid) ? uid : "",
-                            Name = messageSenderName,
-                            Color = messageMeta.TryGetValue("color", out var color) ? color : GetNameColor(messageSenderName),
+                            UserName = userName,
+                            DisplayName = displayName,
+                            Color = messageMeta.TryGetValue("color", out var color) ? color : GetNameColor(userName),
                             IsModerator = badgeStr != null && badgeStr.Contains("moderator/"),
                             IsBroadcaster = badgeStr != null && badgeStr.Contains("broadcaster/"),
                             IsSubscriber = badgeStr != null && (badgeStr.Contains("subscriber/") || badgeStr.Contains("founder/")),
@@ -284,7 +286,7 @@ namespace ChatCore.Services.Twitch
                         IsActionMessage = isActionMessage,
                         IsSystemMessage = messageType == "NOTICE" || messageType == "USERNOTICE",
                         IsHighlighted = isHighlighted,
-                        IsPing = !string.IsNullOrEmpty(messageText) && loggedInUser != null && messageText.Contains($"@{loggedInUser.Name}", StringComparison.OrdinalIgnoreCase),
+                        IsPing = !string.IsNullOrEmpty(messageText) && loggedInUser != null && messageText.Contains($"@{loggedInUser.DisplayName}", StringComparison.OrdinalIgnoreCase),
                         Bits = messageBits,
                         Metadata = messageMeta,
                         Type = messageType

@@ -40,29 +40,14 @@ namespace ChatCore.Config
             ConvertFromString.TryAdd(typeof(Enum), (fieldInfo, value) => { return Enum.Parse(fieldInfo.FieldType, value); });
             ConvertToString.TryAdd(typeof(Enum), (fieldInfo, obj) => { return obj.GetFieldValue(fieldInfo.Name).ToString(); });
 
-            //      internal string[] Twitch_Channels_Array
-            //{
-            //    get
-            //    {
-            //        var ret = Twitch_Channels.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' });
-            //        if (ret.Length == 1 && string.IsNullOrEmpty(ret[0]))
-            //        {
-            //            return new string[0];
-            //        }
-            //        return ret;
-            //    }
-            //    set
-            //    {
-            //        Twitch_Channels = string.Join(",", value).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' });
-            //    }
-            //}
-
             // List<string> handlers
-            ConvertFromString.TryAdd(typeof(List<string>), (fieldInfo, value) => { 
-                if(value.StartsWith("\"") && value.EndsWith("\"")) {
+            ConvertFromString.TryAdd(typeof(List<string>), (fieldInfo, value) =>
+            {
+                if (value.StartsWith("\"") && value.EndsWith("\""))
+                {
                     value = value.Substring(1, value.Length - 2);
                 }
-                return new List<string>(value.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' })); 
+                return new List<string>(value.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' }));
             });
             ConvertToString.TryAdd(typeof(List<string>), (fieldInfo, obj) => { return string.Join(",", (List<string>)obj.GetFieldValue(fieldInfo.Name)).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }); });
         }
@@ -75,7 +60,7 @@ namespace ChatCore.Config
                 return true;
             }
 
-            if(fieldType.IsArray)
+            if (fieldType.IsArray)
             {
                 return false;
             }
@@ -92,15 +77,11 @@ namespace ChatCore.Config
 
             ConvertFromString.TryAdd(fieldType, (fi, v) =>
             {
-                object obj = Activator.CreateInstance(fi.FieldType);
-                if (string.IsNullOrEmpty(v))
-                {
-                    return obj;
-                }
                 JSONNode json = JSON.Parse(v);
+                object obj = Activator.CreateInstance(fi.FieldType);
                 foreach (var subFieldInfo in fi.FieldType.GetRuntimeFields())
                 {
-                    if (!subFieldInfo.IsPrivate && !subFieldInfo.IsStatic && json.HasKey(subFieldInfo.Name))
+                    if (!subFieldInfo.IsPrivate && !subFieldInfo.IsStatic)
                     {
                         subFieldInfo.SetValue(obj, ConvertFromString[subFieldInfo.FieldType].Invoke(subFieldInfo, json[subFieldInfo.Name].Value));
                     }
@@ -110,10 +91,8 @@ namespace ChatCore.Config
             ConvertToString.TryAdd(fieldType, (fi, v) =>
             {
                 JSONObject json = new JSONObject();
-
                 // Grab the current field we're trying to convert off the parent object
                 var currentField = v.GetFieldValue(fi.Name);
-
                 foreach (var subFieldInfo in fi.FieldType.GetRuntimeFields())
                 {
                     if (!subFieldInfo.IsPrivate && !subFieldInfo.IsStatic)
@@ -164,7 +143,7 @@ namespace ChatCore.Config
             }
             return false;
         }
-        
+
         public void Load(object obj, string path)
         {
             if (ConvertFromString.Count == 0)
@@ -182,7 +161,7 @@ namespace ChatCore.Config
                 string currentSection = null;
                 foreach (Match match in matches)
                 {
-                    if(match.Groups["Section"].Success)
+                    if (match.Groups["Section"].Success)
                     {
                         currentSection = match.Groups["Section"].Value;
                         continue;
@@ -204,9 +183,9 @@ namespace ChatCore.Config
                     var value = match.Groups["Value"].Value;
 
                     // Otherwise, read the value in with the appropriate handler
-                    var fieldInfo = obj.GetType().GetField(name.Replace(".","_"));
+                    var fieldInfo = obj.GetType().GetField(name.Replace(".", "_"));
 
-                    if(fieldInfo == null)
+                    if (fieldInfo == null)
                     {
                         // Skip missing fields, incase one was changed or removed.
                         continue;
@@ -257,7 +236,7 @@ namespace ChatCore.Config
             var configHeader = (ConfigHeader)obj.GetType().GetCustomAttribute(typeof(ConfigHeader));
             if (configHeader != null)
             {
-                foreach(string comment in configHeader.Comment)
+                foreach (string comment in configHeader.Comment)
                 {
                     serializedClass.Add(string.IsNullOrWhiteSpace(comment) ? comment : $"// {comment}");
                 }

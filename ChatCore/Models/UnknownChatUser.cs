@@ -20,20 +20,20 @@ namespace ChatCore.Models
         public UnknownChatUser(string json)
         {
             JSONNode obj = JSON.Parse(json);
-            if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
-            if (obj.HasKey(nameof(UserName))) { UserName = obj[nameof(UserName)].Value; }
-            if (obj.HasKey(nameof(DisplayName))) { DisplayName = obj[nameof(DisplayName)].Value; }
-            if (obj.HasKey(nameof(Color))) { Color = obj[nameof(Color)].Value; }
-            if (obj.HasKey(nameof(IsBroadcaster))) { IsBroadcaster = obj[nameof(IsBroadcaster)].AsBool; }
-            if (obj.HasKey(nameof(IsModerator))) { IsModerator = obj[nameof(IsModerator)].AsBool; }
-            if (obj.HasKey(nameof(Badges)))
+            if (obj.TryGetKey(nameof(Id), out var id)) { Id = id.Value; }
+            if (obj.TryGetKey(nameof(UserName), out var userName)) { UserName = userName.Value; }
+            if (obj.TryGetKey(nameof(DisplayName), out var displayName)) { DisplayName = displayName.Value; }
+            if (obj.TryGetKey(nameof(Color), out var color)) { Color = color.Value; }
+            if (obj.TryGetKey(nameof(IsBroadcaster), out var isBroadcaster)) { IsBroadcaster = isBroadcaster.AsBool; }
+            if (obj.TryGetKey(nameof(IsModerator), out var isModerator)) { IsModerator = isModerator.AsBool; }
+            if (obj.TryGetKey(nameof(Badges), out var badges))
             {
-                List<IChatBadge> badges = new List<IChatBadge>();
-                foreach (var badge in obj["Badges"].AsArray)
+                List<IChatBadge> badgeList = new List<IChatBadge>();
+                foreach (var badge in badges.AsArray)
                 {
-                    badges.Add(new UnknownChatBadge(badge.Value.ToString()));
+                    badgeList.Add(new UnknownChatBadge(badge.Value.ToString()));
                 }
-                Badges = badges.ToArray();
+                Badges = badgeList.ToArray();
             }
         }
         public JSONObject ToJson()

@@ -1,6 +1,7 @@
 ﻿using ChatCore.SimpleJSON;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 using System.Text;
 
 namespace ChatCore.Models.Twitch
@@ -28,14 +29,14 @@ namespace ChatCore.Models.Twitch
         public TwitchRoomstate(string json)
         {
             JSONNode obj = JSON.Parse(json);
-            if (obj.HasKey(nameof(BroadcasterLang))) { BroadcasterLang = obj[nameof(BroadcasterLang)].Value; }
-            if (obj.HasKey(nameof(RoomId))) { RoomId = obj[nameof(RoomId)].Value; }
-            if (obj.HasKey(nameof(EmoteOnly))) { EmoteOnly = obj[nameof(EmoteOnly)].AsBool; }
-            if (obj.HasKey(nameof(FollowersOnly))) { FollowersOnly = obj[nameof(FollowersOnly)].AsBool; }
-            if (obj.HasKey(nameof(SubscribersOnly))) { SubscribersOnly = obj[nameof(SubscribersOnly)].AsBool; }
-            if (obj.HasKey(nameof(R9K))) { R9K = obj[nameof(R9K)].AsBool; }
-            if (obj.HasKey(nameof(SlowModeInterval))) { SlowModeInterval = obj[nameof(SlowModeInterval)].AsInt; }
-            if (obj.HasKey(nameof(MinFollowTime))) { MinFollowTime = obj[nameof(MinFollowTime)].AsInt; }
+            if (obj.TryGetKey(nameof(BroadcasterLang), out var broadcasterLang)) { BroadcasterLang = broadcasterLang.Value; }
+            if (obj.TryGetKey(nameof(RoomId), out var roomId )) { RoomId = roomId.Value; }
+            if (obj.TryGetKey(nameof(EmoteOnly), out var emoteOnly)) { EmoteOnly = emoteOnly.AsBool; }
+            if (obj.TryGetKey(nameof(FollowersOnly), out var followersOnly)) { FollowersOnly = followersOnly.AsBool; }
+            if (obj.TryGetKey(nameof(SubscribersOnly), out var subscribersOnly)) { SubscribersOnly = subscribersOnly.AsBool; }
+            if (obj.TryGetKey(nameof(R9K), out var r9k)) { R9K = r9k.AsBool; }
+            if (obj.TryGetKey(nameof(SlowModeInterval), out var slowModeInterval)) { SlowModeInterval = slowModeInterval.AsInt; }
+            if (obj.TryGetKey(nameof(MinFollowTime), out var minFollowTime)) { MinFollowTime = minFollowTime.AsInt; }
         }
         public JSONObject ToJson()
         {

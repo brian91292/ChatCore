@@ -14,7 +14,7 @@ namespace ChatCore.Models
         public UnknownChatChannel(string json)
         {
             JSONNode obj = JSON.Parse(json);
-            if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
+            if (obj.TryGetKey(nameof(Id), out var id)) { Id = id.Value; }
         }
         public JSONObject ToJson()
         {

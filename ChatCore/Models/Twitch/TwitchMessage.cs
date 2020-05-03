@@ -32,40 +32,40 @@ namespace ChatCore.Models.Twitch
         public TwitchMessage(string json)
         {
             JSONNode obj = JSON.Parse(json);
-            if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
-            if (obj.HasKey(nameof(IsSystemMessage))) { IsSystemMessage = obj[nameof(IsSystemMessage)].AsBool; }
-            if (obj.HasKey(nameof(IsActionMessage))) { IsActionMessage = obj[nameof(IsActionMessage)].AsBool; }
-            if (obj.HasKey(nameof(IsHighlighted))) { IsHighlighted = obj[nameof(IsHighlighted)].AsBool; }
-            if (obj.HasKey(nameof(IsPing))) { IsPing = obj[nameof(IsPing)].AsBool; }
-            if (obj.HasKey(nameof(Message))) { Message = obj[nameof(Message)].Value; }
-            if (obj.HasKey(nameof(Sender))) { Sender = new TwitchUser(obj[nameof(Sender)].ToString()); }
-            if (obj.HasKey(nameof(Channel))) { Channel = new TwitchChannel(obj[nameof(Channel)].ToString()); }
-            if (obj.HasKey(nameof(Emotes)))
+            if (obj.TryGetKey(nameof(Id), out var id)) { Id = id.Value; }
+            if (obj.TryGetKey(nameof(IsSystemMessage), out var isSystemMessage)) { IsSystemMessage = isSystemMessage.AsBool; }
+            if (obj.TryGetKey(nameof(IsActionMessage), out var isActionMessage)) { IsActionMessage = isActionMessage.AsBool; }
+            if (obj.TryGetKey(nameof(IsHighlighted), out var isHighlighted)) { IsHighlighted = isHighlighted.AsBool; }
+            if (obj.TryGetKey(nameof(IsPing), out var isPing)) { IsPing = isPing.AsBool; }
+            if (obj.TryGetKey(nameof(Message), out var message)) { Message = message.Value; }
+            if (obj.TryGetKey(nameof(Sender), out var sender)) { Sender = new TwitchUser(sender.ToString()); }
+            if (obj.TryGetKey(nameof(Channel), out var channel)) { Channel = new TwitchChannel(channel.ToString()); }
+            if (obj.TryGetKey(nameof(Emotes), out var emotes))
             {
-                List<IChatEmote> emotes = new List<IChatEmote>();
-                foreach (var emote in obj[nameof(Emotes)].AsArray)
+                List<IChatEmote> emoteList = new List<IChatEmote>();
+                foreach (var emote in emotes.AsArray)
                 {
-                    if(emote.Value.HasKey(nameof(IChatEmote.Id)))
+                    if(emote.Value.TryGetKey(nameof(IChatEmote.Id), out var emoteNode))
                     {
-                        var id = emote.Value[nameof(IChatEmote.Id)].Value;
-                        if (id.StartsWith("Twitch") || id.StartsWith("BTTV") || id.StartsWith("FFZ"))
+                        var emoteId = emoteNode.Value;
+                        if (emoteId.StartsWith("Twitch") || emoteId.StartsWith("BTTV") || emoteId.StartsWith("FFZ"))
                         {
-                            emotes.Add(new TwitchEmote(emote.Value.ToString()));
+                            emoteList.Add(new TwitchEmote(emote.Value.ToString()));
                         }
-                        else if (id.StartsWith("Emoji"))
+                        else if (emoteId.StartsWith("Emoji"))
                         {
-                            emotes.Add(new Emoji(emote.Value.ToString()));
+                            emoteList.Add(new Emoji(emote.Value.ToString()));
                         }
                         else
                         {
-                            emotes.Add(new UnknownChatEmote(emote.Value.ToString()));
+                            emoteList.Add(new UnknownChatEmote(emote.Value.ToString()));
                         }
                     }
                 }
-                Emotes = emotes.ToArray();
+                Emotes = emoteList.ToArray();
             }
-            if (obj.HasKey(nameof(Type))) { Type = obj[nameof(Type)].Value; }
-            if (obj.HasKey(nameof(Bits))) { Bits = obj[nameof(Bits)].AsInt; }
+            if (obj.TryGetKey(nameof(Type), out var type)) { Type = type.Value; }
+            if (obj.TryGetKey(nameof(Bits), out var bits)) { Bits = bits.AsInt; }
         }
         public JSONObject ToJson()
         {

@@ -232,6 +232,12 @@ namespace ChatCore.SimpleJSON
             }
         }
 
+        public virtual bool TryGetKey(string aKey, out JSONNode node)
+        {
+            node = null;
+            return false;
+        }
+
         public virtual bool HasKey(string aKey)
         {
             return false;
@@ -923,6 +929,12 @@ namespace ChatCore.SimpleJSON
         {
             return m_Dict.ContainsKey(aKey);
         }
+
+        public override bool TryGetKey(string aKey, out JSONNode node)
+        {
+            return m_Dict.TryGetValue(aKey, out node);
+        }
+
 
         public override JSONNode GetValueOrDefault(string aKey, JSONNode aDefault)
         {

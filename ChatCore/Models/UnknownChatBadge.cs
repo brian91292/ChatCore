@@ -16,9 +16,9 @@ namespace ChatCore.Models
         public UnknownChatBadge(string json)
         {
             JSONNode obj = JSON.Parse(json);
-            if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
-            if (obj.HasKey(nameof(Name))) { Name = obj[nameof(Name)].Value; }
-            if (obj.HasKey(nameof(Uri))) { Uri = obj[nameof(Uri)].Value; }
+            if (obj.TryGetKey(nameof(Id), out var id)) { Id = id.Value; }
+            if (obj.TryGetKey(nameof(Name), out var name)) { Name = name.Value; }
+            if (obj.TryGetKey(nameof(Uri), out var uri)) { Uri = uri.Value; }
         }
         public JSONObject ToJson()
         {

@@ -23,25 +23,25 @@ namespace ChatCore.Models
         public UnknownChatMessage(string json)
         {
             JSONNode obj = JSON.Parse(json);
-            if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
-            if (obj.HasKey(nameof(IsSystemMessage))) { IsSystemMessage = obj[nameof(IsSystemMessage)].AsBool; }
-            if (obj.HasKey(nameof(IsActionMessage))) { IsActionMessage = obj[nameof(IsActionMessage)].AsBool; }
-            if (obj.HasKey(nameof(IsHighlighted))) { IsHighlighted = obj[nameof(IsHighlighted)].AsBool; }
-            if (obj.HasKey(nameof(IsPing))) { IsPing = obj[nameof(IsPing)].AsBool; }
-            if (obj.HasKey(nameof(Message))) { Message = obj[nameof(Message)].Value; }
-            if (obj.HasKey(nameof(Sender))) { Sender = new UnknownChatUser(obj[nameof(Sender)].ToString()); }
-            if (obj.HasKey(nameof(Channel))) { Channel = new UnknownChatChannel(obj[nameof(Channel)].ToString()); }
-            if (obj.HasKey(nameof(Emotes)))
+            if (obj.TryGetKey(nameof(Id), out var id)) { Id = id.Value; }
+            if (obj.TryGetKey(nameof(IsSystemMessage), out var isSystemMessage)) { IsSystemMessage = isSystemMessage.AsBool; }
+            if (obj.TryGetKey(nameof(IsActionMessage), out var isActionMessage)) { IsActionMessage = isActionMessage.AsBool; }
+            if (obj.TryGetKey(nameof(IsHighlighted), out var isHighlighted)) { IsHighlighted = isHighlighted.AsBool; }
+            if (obj.TryGetKey(nameof(IsPing), out var isPing)) { IsPing = isPing.AsBool; }
+            if (obj.TryGetKey(nameof(Message), out var message)) { Message = message.Value; }
+            if (obj.TryGetKey(nameof(Sender), out var sender)) { Sender = new UnknownChatUser(sender.ToString()); }
+            if (obj.TryGetKey(nameof(Channel), out var channel)) { Channel = new UnknownChatChannel(channel.ToString()); }
+            if (obj.TryGetKey(nameof(Emotes), out var emotes))
             {
-                List<IChatEmote> emotes = new List<IChatEmote>();
-                foreach (var emote in obj[nameof(Emotes)].AsArray)
+                List<IChatEmote> emoteList = new List<IChatEmote>();
+                foreach (var emote in emotes.AsArray)
                 {
-                    if (emote.Value.HasKey(nameof(IChatEmote.Id)))
+                    if (emote.Value.TryGetKey(nameof(IChatEmote.Id), out var emoteNode))
                     {
-                        emotes.Add(new UnknownChatEmote(emote.Value.ToString()));
+                        emoteList.Add(new UnknownChatEmote(emoteNode.Value.ToString()));
                     }
                 }
-                Emotes = emotes.ToArray();
+                Emotes = emoteList.ToArray();
             }
         }
         public JSONObject ToJson()

@@ -17,8 +17,8 @@ namespace ChatCore.Models.Twitch
         public TwitchChannel(string json)
         {
             JSONNode obj = JSON.Parse(json);
-            if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
-            if (obj.HasKey(nameof(Roomstate))) { Roomstate = new TwitchRoomstate(obj["Roomstate"].ToString()); }
+            if (obj.TryGetKey(nameof(Id), out var id)) { Id = id.Value; }
+            if (obj.TryGetKey(nameof(Roomstate), out var roomstate)) { Roomstate = new TwitchRoomstate(roomstate.ToString()); }
         }
         public JSONObject ToJson()
         {

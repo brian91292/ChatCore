@@ -19,12 +19,12 @@ namespace ChatCore.Models
         public UnknownChatEmote(string json)
         {
             JSONNode obj = JSON.Parse(json);
-            if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
-            if (obj.HasKey(nameof(Name))) { Name = obj[nameof(Name)].Value; }
-            if (obj.HasKey(nameof(Uri))) { Uri = obj[nameof(Uri)].Value; }
-            if (obj.HasKey(nameof(StartIndex))) { StartIndex = obj[nameof(Id)].AsInt; }
-            if (obj.HasKey(nameof(EndIndex))) { EndIndex = obj[nameof(EndIndex)].AsInt; }
-            if (obj.HasKey(nameof(IsAnimated))) { IsAnimated = obj[nameof(IsAnimated)].AsBool; }
+            if (obj.TryGetKey(nameof(Id), out var id)) { Id = id.Value; }
+            if (obj.TryGetKey(nameof(Name), out var name)) { Name = name.Value; }
+            if (obj.TryGetKey(nameof(Uri), out var uri)) { Uri = uri.Value; }
+            if (obj.TryGetKey(nameof(StartIndex), out var startIndex)) { StartIndex = startIndex.AsInt; }
+            if (obj.TryGetKey(nameof(EndIndex), out var endIndex)) { EndIndex = endIndex.AsInt; }
+            if (obj.TryGetKey(nameof(IsAnimated), out var isAnimated)) { IsAnimated = isAnimated.AsBool; }
         }
         public JSONObject ToJson()
         {

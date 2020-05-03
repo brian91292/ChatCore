@@ -6,7 +6,7 @@ using System.Text;
 
 namespace ChatCore.Models
 {
-    public class Emoji : IChatEmote
+    public class UnknownChatEmote : IChatEmote
     {
         public string Id { get; internal set; }
         public string Name { get; internal set; }
@@ -15,8 +15,8 @@ namespace ChatCore.Models
         public int EndIndex { get; internal set; }
         public bool IsAnimated { get; internal set; }
 
-        public Emoji() { }
-        public Emoji(string json)
+        public UnknownChatEmote() { }
+        public UnknownChatEmote(string json)
         {
             JSONNode obj = JSON.Parse(json);
             if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }

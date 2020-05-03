@@ -1,4 +1,5 @@
 ﻿using ChatCore.Models;
+using ChatCore.SimpleJSON;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -13,5 +14,6 @@ namespace ChatCore.Interfaces
         int StartIndex { get; }
         int EndIndex { get; }
         bool IsAnimated { get; }
+        JSONObject ToJson();
     }
 }

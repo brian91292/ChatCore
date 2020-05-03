@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ChatCore.Models;
+using ChatCore.SimpleJSON;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -13,5 +15,6 @@ namespace ChatCore.Interfaces
         bool IsBroadcaster { get; }
         bool IsModerator { get; }
         IChatBadge[] Badges { get; }
+        JSONObject ToJson();
     }
 }

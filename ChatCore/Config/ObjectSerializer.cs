@@ -97,7 +97,6 @@ namespace ChatCore.Config
                 {
                     if (!subFieldInfo.IsPrivate && !subFieldInfo.IsStatic)
                     {
-                        //var subFieldValue = currentField.GetField(subFieldInfo.Name);
                         string value = ConvertToString[subFieldInfo.FieldType].Invoke(subFieldInfo, currentField);
                         json.Add(subFieldInfo.Name, new JSONString(value));
                     }

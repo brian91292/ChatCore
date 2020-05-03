@@ -65,17 +65,7 @@ namespace StreamCoreTester
         private void StreamServiceProvider_OnMessageReceived(IChatService svc, IChatMessage msg)
         {
             Console.WriteLine($"{msg.Sender.DisplayName}: {msg.Message}");
-            //Console.WriteLine($"Bytes: {BitConverter.ToString(Encoding.UTF32.GetBytes(msg.Message))}");
-            //Console.WriteLine("Badges: ");
-            //foreach (var badge in msg.Sender.Badges)
-            //{
-            //    Console.WriteLine($"Badge: {badge.Name}, URI: {badge.Uri}");
-            //}
-            //Console.WriteLine($"Metadata: ");
-            //foreach (var meta in msg.Metadata)
-            //{
-            //    Console.WriteLine($"{meta.Key}: {meta.Value}");
-            //}
+            Console.WriteLine(msg.ToJson().ToString());
         }
 
         private void button1_Click(object sender, EventArgs e)

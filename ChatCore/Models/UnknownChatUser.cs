@@ -4,23 +4,20 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ChatCore.Models.Twitch
+namespace ChatCore.Models
 {
-    public class TwitchUser : IChatUser
+    public class UnknownChatUser : IChatUser
     {
         public string Id { get; internal set; }
         public string UserName { get; internal set; }
         public string DisplayName { get; internal set; }
         public string Color { get; internal set; }
-        public bool IsModerator { get; internal set; }
         public bool IsBroadcaster { get; internal set; }
-        public bool IsSubscriber { get; internal set; }
-        public bool IsTurbo { get; internal set; }
-        public bool IsVip { get; internal set; }
+        public bool IsModerator { get; internal set; }
         public IChatBadge[] Badges { get; internal set; }
 
-        public TwitchUser() { }
-        public TwitchUser(string json)
+        public UnknownChatUser() { }
+        public UnknownChatUser(string json)
         {
             JSONNode obj = JSON.Parse(json);
             if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
@@ -34,13 +31,10 @@ namespace ChatCore.Models.Twitch
                 List<IChatBadge> badges = new List<IChatBadge>();
                 foreach (var badge in obj["Badges"].AsArray)
                 {
-                    badges.Add(new TwitchBadge(badge.ToString()));
+                    badges.Add(new UnknownChatBadge(badge.Value.ToString()));
                 }
                 Badges = badges.ToArray();
             }
-            if (obj.HasKey(nameof(IsSubscriber))) { IsSubscriber = obj[nameof(IsSubscriber)].AsBool; }
-            if (obj.HasKey(nameof(IsTurbo))) { IsTurbo = obj[nameof(IsTurbo)].AsBool; }
-            if (obj.HasKey(nameof(IsVip))) { IsVip = obj[nameof(IsVip)].AsBool; }
         }
         public JSONObject ToJson()
         {
@@ -57,9 +51,6 @@ namespace ChatCore.Models.Twitch
                 badges.Add(badge.ToJson());
             }
             obj.Add(nameof(Badges), badges);
-            obj.Add(nameof(IsSubscriber), new JSONBool(IsSubscriber));
-            obj.Add(nameof(IsTurbo), new JSONBool(IsTurbo));
-            obj.Add(nameof(IsVip), new JSONBool(IsVip));
             return obj;
         }
     }

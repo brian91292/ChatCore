@@ -1,4 +1,5 @@
 ﻿using ChatCore.Interfaces;
+using ChatCore.SimpleJSON;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -21,5 +22,32 @@ namespace ChatCore.Models.Twitch
         /// If there are bits associated with this emote, this is the color the bits text should be.
         /// </summary>
         public string Color { get; internal set; }
+
+        public TwitchEmote() { }
+        public TwitchEmote(string json)
+        {
+            JSONNode obj = JSON.Parse(json);
+            if (obj.HasKey(nameof(Id))) { Id = obj[nameof(Id)].Value; }
+            if (obj.HasKey(nameof(Name))) { Name = obj[nameof(Name)].Value; }
+            if (obj.HasKey(nameof(Uri))) { Uri = obj[nameof(Uri)].Value; }
+            if (obj.HasKey(nameof(StartIndex))) { StartIndex = obj[nameof(Id)].AsInt; }
+            if (obj.HasKey(nameof(EndIndex))) { EndIndex = obj[nameof(EndIndex)].AsInt; }
+            if (obj.HasKey(nameof(IsAnimated))) { IsAnimated = obj[nameof(IsAnimated)].AsBool; }
+            if (obj.HasKey(nameof(Bits))) { Bits = obj[nameof(Bits)].AsInt; }
+            if (obj.HasKey(nameof(Color))) { Color = obj[nameof(Color)].Value; }
+        }
+        public JSONObject ToJson()
+        {
+            JSONObject obj = new JSONObject();
+            obj.Add(nameof(Id), new JSONString(Id));
+            obj.Add(nameof(Name), new JSONString(Name));
+            obj.Add(nameof(Uri), new JSONString(Uri));
+            obj.Add(nameof(StartIndex), new JSONNumber(StartIndex));
+            obj.Add(nameof(EndIndex), new JSONNumber(EndIndex));
+            obj.Add(nameof(IsAnimated), new JSONBool(IsAnimated));
+            obj.Add(nameof(Bits), new JSONNumber(Bits));
+            obj.Add(nameof(Color), new JSONString(Color));
+            return obj;
+        }
     }
 }

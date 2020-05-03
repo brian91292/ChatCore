@@ -1,5 +1,7 @@
-﻿using System;
+﻿using ChatCore.SimpleJSON;
+using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ChatCore.Interfaces
@@ -9,5 +11,6 @@ namespace ChatCore.Interfaces
         string Id { get; }
         string Name { get; }
         string Uri { get; }
+        JSONObject ToJson();
     }
 }

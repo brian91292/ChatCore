@@ -65,6 +65,11 @@
             <param name="obj"></param>
             <param name="postData"></param>
         </member>
+        <member name="T:ChatCore.Config.StreamCoreConfigConverter`1">
+            <summary>
+            The purpose of this class is to provide a simple interface for converting an old StreamCore config file into ChatCore.
+            </summary>
+        </member>
         <member name="P:ChatCore.Interfaces.IChatMessage.Id">
             <summary>
             The internal identifier for this chat message

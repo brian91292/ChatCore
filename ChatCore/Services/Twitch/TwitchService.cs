@@ -1,14 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
-using ChatCore.Interfaces;
+﻿using ChatCore.Interfaces;
 using ChatCore.Models;
 using ChatCore.Models.Twitch;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ChatCore.Services.Twitch
@@ -84,6 +81,7 @@ namespace ChatCore.Services.Twitch
                 {
                     _isStarted = true;
                     _websocketService.Connect("wss://irc-ws.chat.twitch.tv:443", forceReconnect);
+                    Task.Run(ProcessQueuedMessages);
                 }
             }
         }
@@ -258,6 +256,36 @@ namespace ChatCore.Services.Twitch
             }
         }
 
+        private int _currentMessageCount = 0;
+        private DateTime _lastResetTime = DateTime.UtcNow;
+        private ConcurrentQueue<string> _textMessageQueue = new ConcurrentQueue<string>();
+
+        private async Task ProcessQueuedMessages()
+        {
+            while(_isStarted)
+            {
+                if (_currentMessageCount >= 20)
+                {
+                    float remainingMilliseconds = (float)(30000 - (DateTime.UtcNow - _lastResetTime).TotalMilliseconds);
+                    if (remainingMilliseconds > 0)
+                    {
+                        await Task.Delay((int)remainingMilliseconds);
+                    }
+                }
+                if((DateTime.UtcNow - _lastResetTime).TotalSeconds >= 30)
+                {
+                    _currentMessageCount = 0;
+                    _lastResetTime = DateTime.UtcNow;
+                }
+
+                if(_textMessageQueue.TryDequeue(out var msg))
+                {
+                    SendRawMessage(msg, true);
+                    _currentMessageCount++;
+                }
+            }
+        }
+
         /// <summary>
         /// Sends a raw message to the Twitch server
         /// </summary>
@@ -268,12 +296,13 @@ namespace ChatCore.Services.Twitch
         /// </param>
         public void SendRawMessage(string rawMessage, bool forwardToSharedClients = false)
         {
+            // TODO: rate limit sends to Twitch service
             SendRawMessage(Assembly.GetCallingAssembly(), rawMessage, forwardToSharedClients);
         }
 
         internal void SendTextMessage(Assembly assembly, string message, string channel)
         {
-            SendRawMessage(assembly, $"PRIVMSG #{channel} :{message}", true);
+            _textMessageQueue.Enqueue($"PRIVMSG #{channel} :{message}");
         }
 
         public void SendTextMessage(string message, string channel)

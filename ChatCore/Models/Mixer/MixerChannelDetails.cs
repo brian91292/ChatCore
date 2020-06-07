@@ -8,7 +8,7 @@ namespace ChatCore.Models.Mixer
 {
     public class MixerChannelDetails
     {
-        public string authKey = "";
+        public string authkey = "";
         public string[] endpoints = new string[0];
         public string[] permissions = new string[0];
 
@@ -21,7 +21,7 @@ namespace ChatCore.Models.Mixer
         public string ToJson()
         {
             JSONObject json = new JSONObject();
-            json.Add("authKey", new JSONString(authKey));
+            json.Add("authkey", new JSONString(authkey));
             json.Add("endpoints", new JSONArray(endpoints));
             json.Add("permissions", new JSONArray(permissions));
             return json.ToString();
@@ -34,9 +34,9 @@ namespace ChatCore.Models.Mixer
             {
                 return;
             }
-            if (json.TryGetKey("authKey", out var ak))
+            if (json.TryGetKey("authkey", out var ak))
             {
-                authKey = ak.Value;
+                authkey = ak.Value;
             }
             if (json.TryGetKey("endpoints", out var ep))
             {

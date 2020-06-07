@@ -64,12 +64,27 @@ namespace ChatCore.Services.Mixer
             if (resp.IsSuccessStatusCode)
             {
                 var raw = await resp.Content.ReadAsStringAsync();
-                _logger.LogInformation($"Raw: {raw}");
                 return new MixerChannelDetails(raw);
             }
             else
             {
                 _logger.LogWarning($"Error trying to get channel details! {await resp.Content.ReadAsStringAsync()}");
+            }
+            return null;
+        }
+
+        public async Task<string> GetLoggedInUserId()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "https://mixer.com/api/v1/users/current");
+            var resp = await _mixerHttpClient.SendAsync(request);
+            if(resp.IsSuccessStatusCode)
+            {
+                var raw = await resp.Content.ReadAsStringAsync();
+                var json = JSON.Parse(raw);
+                if (json != null)
+                {
+                    return json["channel"]["userId"].Value;
+                }
             }
             return null;
         }

@@ -35,7 +35,6 @@ namespace ChatCore.Services.Mixer
         private ILogger _logger;
         //private MixerMessageParser _messageParser;
         private MixerDataProvider _dataProvider;
-        private IWebSocketService _websocketService;
         private IUserAuthProvider _authManager;
         private Random _rand;
         private bool _isStarted = false;
@@ -69,26 +68,8 @@ namespace ChatCore.Services.Mixer
 
             if (shouldStart)
             {
-                foreach (var channel in _authManager.Credentials.Mixer_Channels)
-                {
-                    await TryJoinMixerChannel(channel);
-                }
+                Task.Run(JoinMixerChannels);
             }
-        }
-
-
-        private async Task TryJoinMixerChannel(string channel)
-        {
-            var channelId = await _dataProvider.GetChannelIdFromUsername(channel);
-            if(string.IsNullOrEmpty(channelId))
-            {
-                return;
-            }
-
-            var channelDetails = await _dataProvider.GetChannelDetails(channelId);
-
-            var socket = ChatCoreInstance._serviceProvider.GetService<IWebSocketService>();
-
         }
 
         internal void Stop()
@@ -99,12 +80,99 @@ namespace ChatCore.Services.Mixer
                 {
                     _processMessageQueueCancellation?.Cancel();
                     _isStarted = false;
+                    foreach(var channel in _channelSockets.Values)
+                    {
+                        try
+                        {
+                            channel.Disconnect();
+                        }
+                        catch(Exception ex)
+                        {
+                            _logger.LogError(ex, "An unknown exception occurred while trying to shutdown Mixer channel socket.");
+                        }
+                    }
+                    _channelSockets.Clear();
                     // TODO: reimplement this
                     //_channels.Clear();
                     //LoggedInUser = null;
                     _loggedInUsername = null;
-                    _websocketService.Disconnect();
                 }
+            }
+        }
+
+        private async Task JoinMixerChannels()
+        {
+            foreach (var channel in _authManager.Credentials.Mixer_Channels)
+            {
+                await TryJoinMixerChannel(channel);
+            }
+        }
+
+        private async Task TryJoinMixerChannel(string channel)
+        {
+            var channelId = await _dataProvider.GetChannelIdFromUsername(channel);
+            if (string.IsNullOrEmpty(channelId))
+            {
+                return;
+            }
+
+            var userId = await _dataProvider.GetLoggedInUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return;
+            }
+
+            var channelDetails = await _dataProvider.GetChannelDetails(channelId);
+            if (channelDetails != null)
+            {
+                if (!_isStarted)
+                {
+                    return;
+                }
+
+                lock (_initLock)
+                {
+                    var socket = ChatCoreInstance._serviceProvider.GetService<IWebSocketService>();
+                    Action OnOpenMethod = () =>
+                    {
+                        SendMixerMessageOfType("auth", channelId, $"[{channelId}, {userId}, \"{channelDetails.authkey}\"]");
+                    };
+                    socket.OnOpen -= OnOpenMethod;
+                    socket.OnOpen += OnOpenMethod;
+                    socket.OnMessageReceived -= Socket_OnMessageReceived;
+                    socket.OnMessageReceived += Socket_OnMessageReceived;
+                    foreach (var server in channelDetails.endpoints)
+                    {
+                        _logger.LogInformation($"Connecting to {server}");
+                        try
+                        {
+                            socket.Connect(server);
+                            _channelSockets.Add(channelId, socket);
+                            return;
+                        }
+                        catch(Exception ex)
+                        {
+                            _channelSockets.Add(channelId, socket);
+                            _logger.LogError(ex, $"Unknown exception while trying to connect to mixer channel {channel}");
+                        }
+                    }
+                    socket.Dispose();
+                }
+            }
+
+        }
+
+        private void Socket_OnMessageReceived(Assembly source, string message)
+        {
+            _logger.LogInformation($"Mixer Message: {message}");
+        }
+
+        private long currentMsgId = 0;
+        private void SendMixerMessageOfType(string method, string channelId, string arguments)
+        {
+            if(_channelSockets.TryGetValue(channelId, out var socket))
+            {
+                socket.SendMessage($"{{\"type\": \"method\", \"method\": \"{method}\", \"arguments\": {arguments}, \"id\": {currentMsgId++}}}");
             }
         }
 

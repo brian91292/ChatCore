@@ -67,6 +67,8 @@ namespace ChatCore
                         .AddSingleton<FFZDataProvider>()
                         .AddSingleton<MixerService>()
                         .AddSingleton<MixerServiceManager>()
+                        .AddSingleton<MixerDataProvider>()
+                        .AddSingleton<MixerShortcodeAuthProvider>()
                         .AddSingleton<IChatService>(x =>
                             new ChatServiceMultiplexer(
                                 x.GetService<ILogger<ChatServiceMultiplexer>>(),

@@ -31,7 +31,7 @@ namespace ChatCore.Services.Mixer
                 {
                     return;
                 }
-                // TODO: run mixer service
+                _mixerService.Start();
                 IsRunning = true;
                 _logger.LogInformation("Started");
             }
@@ -53,7 +53,7 @@ namespace ChatCore.Services.Mixer
                         return;
                     }
                 }
-                // TODO: shutdown mixer service
+                _mixerService.Stop();
                 IsRunning = false;
                 _logger.LogInformation("Stopped");
             }

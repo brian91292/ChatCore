@@ -21,6 +21,8 @@ namespace ChatCore.Services
             _logger = logger;
             _authManager = authManager;
             _settings = settings;
+
+            Task.Run(async () => await _authManager.MixerLogin());
         }
 
         private ILogger _logger;

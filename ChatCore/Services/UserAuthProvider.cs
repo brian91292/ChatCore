@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using ChatCore.Config;
 using System.Threading.Tasks;
+using ChatCore.Services.Mixer;
 
 namespace ChatCore.Services
 {
@@ -26,10 +27,11 @@ namespace ChatCore.Services
         // If this is set, old StreamCore config data will be read in from this file.
         internal static string OldConfigPath = null;
 
-        public UserAuthProvider(ILogger<UserAuthProvider> logger, IPathProvider pathProvider)
+        public UserAuthProvider(ILogger<UserAuthProvider> logger, IPathProvider pathProvider, MixerShortcodeAuthProvider mixerAuthProvider)
         {
             _logger = logger;
             _pathProvider = pathProvider;
+            _mixerAuthProvider = mixerAuthProvider;
             _credentialsPath = Path.Combine(_pathProvider.GetDataPath(), "auth.ini");
             _credentialSerializer = new ObjectSerializer();
             _credentialSerializer.Load(Credentials, _credentialsPath);
@@ -77,6 +79,7 @@ namespace ChatCore.Services
 
         private ILogger _logger;
         private IPathProvider _pathProvider;
+        private MixerShortcodeAuthProvider _mixerAuthProvider;
         private string _credentialsPath;
         private ObjectSerializer _credentialSerializer;
 
@@ -84,6 +87,18 @@ namespace ChatCore.Services
         {
             _credentialSerializer.Save(Credentials, _credentialsPath);
             OnCredentialsUpdated?.Invoke(Credentials);
+        }
+
+        public async Task MixerLogin()
+        {
+            var grant = await _mixerAuthProvider.WaitForGrant();
+            if(grant != null)
+            {
+                Credentials.Mixer_AccessToken = grant.AccessToken;
+                Credentials.Mixer_RefreshToken = grant.RefreshToken;
+                Credentials.Mixer_ExpiresAt = grant.ExpiresAt;
+                Save();
+            }
         }
     }
 }

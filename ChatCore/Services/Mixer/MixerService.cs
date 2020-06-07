@@ -6,17 +6,18 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using System.Threading;
 
 namespace ChatCore.Services.Mixer
 {
     public class MixerService : ChatServiceBase, IChatService
     {
         public string DisplayName { get; } = "Mixer"; 
-        public MixerService(ILogger<MixerService> logger, /*MixerMessageParser messageParser,*/ MixerDataProvider mixerDataProvider, IWebSocketService websocketService, IUserAuthProvider authManager, Random rand)
+        public MixerService(ILogger<MixerService> logger, /*MixerMessageParser messageParser,*/ MixerDataProvider mixerDataProvider, IUserAuthProvider authManager, Random rand)
         {
             _logger = logger;
             _dataProvider = mixerDataProvider;
-            _websocketService = websocketService;
             _authManager = authManager;
             _rand = rand;
 
@@ -41,6 +42,8 @@ namespace ChatCore.Services.Mixer
         private string _anonUsername;
         private object _messageReceivedLock = new object(), _initLock = new object();
         private string _loggedInUsername;
+        private Dictionary<string, IWebSocketService> _channelSockets = new Dictionary<string, IWebSocketService>();
+        private CancellationTokenSource _processMessageQueueCancellation = null;
 
         private string _userName { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? _anonUsername : "@"; }
         private string _oAuthToken { get => string.IsNullOrEmpty(_authManager.Credentials.Twitch_OAuthToken) ? "" : _authManager.Credentials.Twitch_OAuthToken; }
@@ -51,21 +54,41 @@ namespace ChatCore.Services.Mixer
                 Stop();
             }
 
-            _logger.LogInformation("Trying to get ninja channel details...");
-            var details = await _dataProvider.GetChannelDetails(await _dataProvider.GetChannelIdFromUsername("test"));
-            _logger.LogInformation($"Mixer channel details for ninja: {details?.ToJson() ?? "NULL"}");
-
+            bool shouldStart = false;
             lock (_initLock)
             {
                 if (!_isStarted)
                 {
                     _isStarted = true;
-
-
+                    shouldStart = true;
                     //_websocketService.Connect("wss://chat.mixer.com:443", forceReconnect);
-                    //Task.Run(ProcessQueuedMessages);
+                    _processMessageQueueCancellation = new CancellationTokenSource();
+                    Task.Run(ProcessQueuedMessages, _processMessageQueueCancellation.Token);
                 }
             }
+
+            if (shouldStart)
+            {
+                foreach (var channel in _authManager.Credentials.Mixer_Channels)
+                {
+                    await TryJoinMixerChannel(channel);
+                }
+            }
+        }
+
+
+        private async Task TryJoinMixerChannel(string channel)
+        {
+            var channelId = await _dataProvider.GetChannelIdFromUsername(channel);
+            if(string.IsNullOrEmpty(channelId))
+            {
+                return;
+            }
+
+            var channelDetails = await _dataProvider.GetChannelDetails(channelId);
+
+            var socket = ChatCoreInstance._serviceProvider.GetService<IWebSocketService>();
+
         }
 
         internal void Stop()
@@ -74,6 +97,7 @@ namespace ChatCore.Services.Mixer
             {
                 if (_isStarted)
                 {
+                    _processMessageQueueCancellation?.Cancel();
                     _isStarted = false;
                     // TODO: reimplement this
                     //_channels.Clear();
@@ -90,31 +114,34 @@ namespace ChatCore.Services.Mixer
 
         private async Task ProcessQueuedMessages()
         {
-            while (_isStarted)
+            try
             {
-                if (_currentMessageCount >= 20)
+                while (_isStarted)
                 {
-                    float remainingMilliseconds = (float)(30000 - (DateTime.UtcNow - _lastResetTime).TotalMilliseconds);
-                    if (remainingMilliseconds > 0)
+                    if (_currentMessageCount >= 20)
                     {
-                        await Task.Delay((int)remainingMilliseconds);
+                        float remainingMilliseconds = (float)(30000 - (DateTime.UtcNow - _lastResetTime).TotalMilliseconds);
+                        if (remainingMilliseconds > 0)
+                        {
+                            await Task.Delay((int)remainingMilliseconds);
+                        }
+                    }
+                    if ((DateTime.UtcNow - _lastResetTime).TotalSeconds >= 30)
+                    {
+                        _currentMessageCount = 0;
+                        _lastResetTime = DateTime.UtcNow;
+                    }
+
+                    if (_textMessageQueue.TryDequeue(out var msg))
+                    {
+                        // TODO: reimplement this
+                        //SendRawMessage(msg, true);
+                        _currentMessageCount++;
                     }
                 }
-                if ((DateTime.UtcNow - _lastResetTime).TotalSeconds >= 30)
-                {
-                    _currentMessageCount = 0;
-                    _lastResetTime = DateTime.UtcNow;
-                }
-
-                if (_textMessageQueue.TryDequeue(out var msg))
-                {
-                    // TODO: reimplement this
-                    //SendRawMessage(msg, true);
-                    _currentMessageCount++;
-                }
             }
+            catch(TaskCanceledException) { }
         }
-
 
         public void SendTextMessage(string message, IChatChannel channel)
         {

@@ -21,8 +21,6 @@ namespace ChatCore.Services
             _logger = logger;
             _authManager = authManager;
             _settings = settings;
-
-            Task.Run(async () => await _authManager.MixerLogin());
         }
 
         private ILogger _logger;
@@ -67,12 +65,30 @@ namespace ChatCore.Services
                 HttpListenerRequest req = ctx.Request;
                 HttpListenerResponse resp = ctx.Response;
 
-                if (req.HttpMethod == "POST" && req.Url.AbsolutePath == "/submit")
+                if(req.HttpMethod == "GET" && req.Url.AbsolutePath == "/mixer")
+                {
+                    if (string.IsNullOrEmpty(_authManager.Credentials.Mixer_RefreshToken))
+                    {
+                        Task.Run(async () => await _authManager.MixerLogin());
+                    }
+                    else
+                    {
+                        // Why does mixer have no way to revoke oauth credentials? smh...
+                        _authManager.Credentials.Mixer_RefreshToken = "";
+                        _authManager.Credentials.Mixer_AccessToken = "";
+                        _authManager.Credentials.Mixer_ExpiresAt = DateTime.UtcNow;
+                        _authManager.Save();
+                    }
+                    resp.Redirect(req.UrlReferrer.OriginalString);
+                    resp.Close();
+                    return;
+                }
+                else if (req.HttpMethod == "POST" && req.Url.AbsolutePath == "/submit")
                 {
                     using (var reader = new StreamReader(req.InputStream, req.ContentEncoding))
                     {
                         string postStr = reader.ReadToEnd();
-                        List<string> twitchChannels = new List<string>();
+                        List<string> twitchChannels = new List<string>(), mixerChannels = new List<string>();
 
                         Dictionary<string, string> postDict = new Dictionary<string, string>();
                         foreach (var postData in postStr.Split('&'))
@@ -89,13 +105,22 @@ namespace ChatCore.Services
                                         _authManager.Credentials.Twitch_OAuthToken = twitchOauthToken.StartsWith("oauth:") ? twitchOauthToken : !string.IsNullOrEmpty(twitchOauthToken) ? $"oauth:{twitchOauthToken}" : "";
                                         break;
                                     case "twitch_channel":
-                                        string channel = split[1].ToLower();
-                                        if (!string.IsNullOrWhiteSpace(channel) && !_authManager.Credentials.Twitch_Channels.Contains(channel))
+                                        string twitchChannel = split[1].ToLower();
+                                        if (!string.IsNullOrWhiteSpace(twitchChannel) && !_authManager.Credentials.Twitch_Channels.Contains(twitchChannel))
                                         {
-                                            _authManager.Credentials.Twitch_Channels.Add(channel);
+                                            _authManager.Credentials.Twitch_Channels.Add(twitchChannel);
                                         }
-                                        _logger.LogInformation($"Channel: {channel}");
-                                        twitchChannels.Add(channel);
+                                        _logger.LogInformation($"TwitchChannel: {twitchChannel}");
+                                        twitchChannels.Add(twitchChannel);
+                                        break;
+                                    case "mixer_channel":
+                                        string mixerChannel = split[1].ToLower();
+                                        if (!string.IsNullOrWhiteSpace(mixerChannel) && !_authManager.Credentials.Mixer_Channels.Contains(mixerChannel))
+                                        {
+                                            _authManager.Credentials.Mixer_Channels.Add(mixerChannel);
+                                        }
+                                        _logger.LogInformation($"MixerChannel: {mixerChannel}");
+                                        mixerChannels.Add(mixerChannel);
                                         break;
                                 }
                             }
@@ -104,12 +129,20 @@ namespace ChatCore.Services
                                 _logger.LogError(ex, "An exception occurred in OnLoginDataUpdated callback");
                             }
                         }
-                        foreach(var channel in _authManager.Credentials.Twitch_Channels.ToArray())
+                        foreach (var channel in _authManager.Credentials.Twitch_Channels.ToArray())
                         {
                             // Remove any channels that weren't present in the post data
-                            if(!twitchChannels.Contains(channel))
+                            if (!twitchChannels.Contains(channel))
                             {
                                 _authManager.Credentials.Twitch_Channels.Remove(channel);
+                            }
+                        }
+                        foreach (var channel in _authManager.Credentials.Mixer_Channels.ToArray())
+                        {
+                            // Remove any channels that weren't present in the post data
+                            if (!mixerChannels.Contains(channel))
+                            {
+                                _authManager.Credentials.Mixer_Channels.Remove(channel);
                             }
                         }
                         _authManager.Save();
@@ -121,19 +154,36 @@ namespace ChatCore.Services
                     return;
                 }
                 StringBuilder pageBuilder = new StringBuilder(pageData);
-                StringBuilder channelHtmlString = new StringBuilder();
+                StringBuilder twitchChannelHtmlString = new StringBuilder();
                 for (int i = 0; i < _authManager.Credentials.Twitch_Channels.Count; i++)
                 {
                     var channel = _authManager.Credentials.Twitch_Channels[i];
-                    channelHtmlString.Append($"<span id=\"twitch_channel_{i}\" class=\"chip \">{channel}<input type=\"text\" class=\"form-input\" name=\"twitch_channel\" style=\"display: none; \" value=\"{channel}\" /><button type=\"button\" onclick=\"removeChannel('twitch_channel_{i}')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\"></button></span>");
+                    twitchChannelHtmlString.Append($"<span id=\"twitch_channel_{i}\" class=\"chip \">{channel}<input type=\"text\" class=\"form-input\" name=\"twitch_channel\" style=\"display: none; \" value=\"{channel}\" /><button type=\"button\" onclick=\"removeTwitchChannel('twitch_channel_{i}')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\"></button></span>");
+                }
+                StringBuilder mixerChannelHtmlString = new StringBuilder();
+                for (int i = 0; i < _authManager.Credentials.Mixer_Channels.Count; i++)
+                {
+                    var channel = _authManager.Credentials.Mixer_Channels[i];
+                    mixerChannelHtmlString.Append($"<span id=\"mixer_channel_{i}\" class=\"chip \">{channel}<input type=\"text\" class=\"form-input\" name=\"mixer_channel\" style=\"display: none; \" value=\"{channel}\" /><button type=\"button\" onclick=\"removeMixerChannel('mixer_channel_{i}')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\"></button></span>");
+                }
+                StringBuilder mixerLinkHtmlString = new StringBuilder();
+                if(!string.IsNullOrEmpty(_authManager.Credentials.Mixer_RefreshToken))
+                {
+                    mixerLinkHtmlString.Append("<button class=\"btn btn-error\" onclick=\"window.location.href='mixer'\" type=\"button\">Click to unlink your Mixer account</button></br></br>");
+                }
+                else
+                {
+                    mixerLinkHtmlString.Append("<button class=\"btn btn-success\" onclick=\"window.location.href='mixer'\" type=\"button\">Click to link your Mixer account</button></br></br>");
                 }
                 var sectionHTML = _settings.GetSettingsAsHTML();
                 pageBuilder.Replace("{WebAppSettingsHTML}", sectionHTML["WebApp"]);
                 pageBuilder.Replace("{GlobalSettingsHTML}", sectionHTML["Global"]);
                 pageBuilder.Replace("{TwitchSettingsHTML}", sectionHTML["Twitch"]);
-                pageBuilder.Replace("{TwitchChannelHtml}", channelHtmlString.ToString());
+                pageBuilder.Replace("{TwitchChannelHtml}", twitchChannelHtmlString.ToString());
                 pageBuilder.Replace("{TwitchOAuthToken}", _authManager.Credentials.Twitch_OAuthToken);
-
+                pageBuilder.Replace("{MixerSettingsHTML}", sectionHTML["Mixer"]);
+                pageBuilder.Replace("{MixerChannelHtml}", mixerChannelHtmlString.ToString());
+                pageBuilder.Replace("{MixerLinkHtml}", mixerLinkHtmlString.ToString());
                 byte[] data = Encoding.UTF8.GetBytes(pageBuilder.ToString());
                 resp.ContentType = "text/html";
                 resp.ContentEncoding = Encoding.UTF8;

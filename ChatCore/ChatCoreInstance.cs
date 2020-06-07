@@ -26,8 +26,8 @@ namespace ChatCore
     public class ChatCoreInstance
     {
         private static object _createLock = new object();
-        private static ChatCoreInstance _instance = null;
-        private static ServiceProvider _serviceProvider;
+        internal static ChatCoreInstance _instance = null;
+        internal static ServiceProvider _serviceProvider;
 
         public event Action<CustomLogLevel, string, string> OnLogReceived;
         internal void OnLogReceivedInternal(CustomLogLevel level, string category, string message)
@@ -54,7 +54,7 @@ namespace ChatCore
                             builder.AddProvider(new CustomSinkProvider(_instance));
                         })
                         .AddSingleton<Random>()
-                        .AddTransient<HttpClient>()
+                        .AddSingleton<HttpClient>()
                         .AddSingleton<ObjectSerializer>()
                         .AddSingleton<MainSettingsProvider>()
                         .AddSingleton<TwitchService>()
@@ -69,6 +69,7 @@ namespace ChatCore
                         .AddSingleton<MixerServiceManager>()
                         .AddSingleton<MixerDataProvider>()
                         .AddSingleton<MixerShortcodeAuthProvider>()
+                        .AddSingleton<MixerAuthedHttpClient>()
                         .AddSingleton<IChatService>(x =>
                             new ChatServiceMultiplexer(
                                 x.GetService<ILogger<ChatServiceMultiplexer>>(),
@@ -94,6 +95,7 @@ namespace ChatCore
                         .AddSingleton<IUserAuthProvider, UserAuthProvider>()
                         .AddSingleton<IWebLoginProvider, WebLoginProvider>()
                         .AddSingleton<IEmojiParser, FrwTwemojiParser>()
+                        .AddSingleton<IDefaultBrowserLauncherService, ProcessDotStartBrowserLauncherService>()
                         .AddTransient<IWebSocketService, WebSocket4NetServiceProvider>();
                     _serviceProvider = serviceCollection.BuildServiceProvider();
 
@@ -103,7 +105,7 @@ namespace ChatCore
                         _serviceProvider.GetService<IWebLoginProvider>().Start();
                         if (settings.LaunchWebAppOnStartup)
                         {
-                            System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
+                            _serviceProvider.GetService<IDefaultBrowserLauncherService>().Launch($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
                         }
                     }
                 }
@@ -210,7 +212,7 @@ namespace ChatCore
                 {
                     throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
                 }
-                System.Diagnostics.Process.Start($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
+                _serviceProvider.GetService<IDefaultBrowserLauncherService>().Launch($"http://localhost:{_serviceProvider.GetService<MainSettingsProvider>().WebAppPort}");
             }
         }
     }

@@ -8,6 +8,8 @@ using System.Text;
 using ChatCore.Config;
 using System.Threading.Tasks;
 using ChatCore.Services.Mixer;
+using System.Threading;
+using ChatCore.Models.OAuth;
 
 namespace ChatCore.Services
 {
@@ -89,9 +91,14 @@ namespace ChatCore.Services
             OnCredentialsUpdated?.Invoke(Credentials);
         }
 
+        private CancellationTokenSource _cancellationToken;
         public async Task MixerLogin()
         {
-            var grant = await _mixerAuthProvider.WaitForGrant();
+            if(_cancellationToken != null) {
+                _cancellationToken.Cancel();
+            }
+            _cancellationToken = new CancellationTokenSource();
+            var grant = await _mixerAuthProvider.AwaitUserApproval(_cancellationToken.Token, launchBrowserProcess: true);
             if(grant != null)
             {
                 Credentials.Mixer_AccessToken = grant.AccessToken;
@@ -99,6 +106,20 @@ namespace ChatCore.Services
                 Credentials.Mixer_ExpiresAt = grant.ExpiresAt;
                 Save();
             }
+        }
+
+
+
+        public async Task<bool> TryRefreshMixerCredentials()
+        {
+            var creds = await _mixerAuthProvider.TryRefreshCredentials(Credentials.Mixer_RefreshToken);
+            if(creds != null)
+            {
+                Credentials.Mixer_AccessToken = creds.AccessToken;
+                Credentials.Mixer_ExpiresAt = creds.ExpiresAt;
+                Save();
+            }
+            return creds != null;
         }
     }
 }

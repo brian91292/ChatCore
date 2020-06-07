@@ -1,57 +1,37 @@
-﻿using ChatCore.SimpleJSON;
+﻿using ChatCore.Interfaces;
+using ChatCore.Models.OAuth;
+using ChatCore.SimpleJSON;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ChatCore.Services.Mixer
 {
-    public class OAuthCredentials
-    {
-        public string AccessToken;
-        public string RefreshToken;
-        public DateTime ExpiresAt;
-    }
-
-
-    public interface IOAuthShortcodeData
-    {
-        string Code { get; set; }
-        string DeviceId { get; set; }
-        int PollFrequencyMs { get; set; }
-        public DateTime ExpiresAt { get; set; }
-    }
-
-    public class MixerOAuthShortcodeData : IOAuthShortcodeData
-    {
-        public string Code { get; set; } = "";
-        public string DeviceId { get; set; } = "";
-        public int PollFrequencyMs { get; set; } = 5000;
-        public DateTime ExpiresAt { get; set; } = DateTime.UtcNow;
-    }
-
-    public interface IShortcodeAuthProvider
-    {
-        Task<IOAuthShortcodeData> RequestShortcode();
-        Task<OAuthCredentials> WaitForGrant(IOAuthShortcodeData request = null);
-    }
-
     public class MixerShortcodeAuthProvider : IShortcodeAuthProvider
     {
-        private string _scopes = "interactive:robot:self";
+        private string _scopes = "channel:update:self chat:connect chat:chat chat:whisper chat:bypass_links chat:bypass_slowchat chat:change_ban chat:timeout";
 
-        public MixerShortcodeAuthProvider(ILogger<MixerShortcodeAuthProvider> logger, HttpClient httpClient) 
+        public MixerShortcodeAuthProvider(ILogger<MixerShortcodeAuthProvider> logger, IDefaultBrowserLauncherService browserLauncher, HttpClient httpClient) 
         {
             _logger = logger;
             _httpClient = httpClient;
+            _browserLauncher = browserLauncher;
         }
-        protected ILogger _logger;
-        protected HttpClient _httpClient;
+        private ILogger _logger;
+        private HttpClient _httpClient;
+        private IDefaultBrowserLauncherService _browserLauncher;
 
-        public async Task<IOAuthShortcodeData> RequestShortcode()
+        public Task<OAuthCredentials> TryRefreshCredentials(string refreshToken)
+        {
+            return ExchangeCodeForCredentials(refreshToken, true);
+        }
+
+        public async Task<OAuthShortcodeRequest> RequestShortcode()
         {
             _logger.LogInformation("Requesting grant!");
             try
@@ -70,7 +50,7 @@ namespace ChatCore.Services.Mixer
                         return null;
                     }
                     _logger.LogInformation("Returning");
-                    return new MixerOAuthShortcodeData()
+                    return new OAuthShortcodeRequest()
                     {
                         Code = json.TryGetKey("code", out var c) ? c.Value : "",
                         DeviceId = json.TryGetKey("handle", out var h) ? h.Value : "",
@@ -90,9 +70,9 @@ namespace ChatCore.Services.Mixer
             return null;
         }
 
-        private async Task<OAuthCredentials> ExchangeCodeForCredentials(string code)
+        private async Task<OAuthCredentials> ExchangeCodeForCredentials(string code, bool refresh = false)
         {
-            var resp = await _httpClient.PostAsync("https://mixer.com/api/v1/oauth/token", new StringContent($"{{\"client_id\": \"{MixerDataProvider.MIXER_CLIENT_ID}\", \"code\": \"{code}\", \"grant_type\": \"authorization_code\"}}"));
+            var resp = await _httpClient.PostAsync("https://mixer.com/api/v1/oauth/token", new StringContent($"{{\"client_id\": \"{MixerDataProvider.MIXER_CLIENT_ID}\", \"{(refresh ? "refresh_token" : "code")}\": \"{code}\", \"grant_type\": \"{(refresh ? "refresh_token" : "authorization_code")}\"}}"));
             if(resp.IsSuccessStatusCode)
             {
                 var json = JSON.Parse(await resp.Content.ReadAsStringAsync());
@@ -110,37 +90,49 @@ namespace ChatCore.Services.Mixer
             return null;
         }
 
-        public async Task<OAuthCredentials> WaitForGrant(IOAuthShortcodeData request = null)
+        public async Task<OAuthCredentials> AwaitUserApproval(CancellationToken cancellationToken, OAuthShortcodeRequest request = null, bool launchBrowserProcess = false)
         {
-            if (request == null) {
-                request = await RequestShortcode();
-                _logger.LogInformation($"Got grant! Code: {request.Code}, DeviceId: {request.DeviceId}");
-            }
-            if (request == null) {
-                _logger.LogWarning("Shortcode request is null! This should never happen!");
-                return null;
-            }
-            _logger.LogInformation("Launching process!");
-            Process.Start($"https://mixer.com/go?code={request.Code}");
-
-            while (DateTime.UtcNow < request.ExpiresAt)
+            try
             {
-                _logger.LogInformation($"Waiting for grant!");
-                var resp = await _httpClient.GetAsync($"https://mixer.com/api/v1/oauth/shortcode/check/{request.DeviceId}");
-                if (resp.StatusCode == System.Net.HttpStatusCode.OK)
+                if (request == null)
                 {
-                    var json = JSON.Parse(await resp.Content.ReadAsStringAsync());
-                    if (json == null)
-                    {
-                        return null;
-                    }
-                    if (json.TryGetKey("code", out var code))
-                    {
-                        return await ExchangeCodeForCredentials(code);
-                    }
-                    break;
+                    request = await RequestShortcode();
+                    _logger.LogInformation($"Got grant! Code: {request.Code}, DeviceId: {request.DeviceId}");
                 }
-                await Task.Delay(request.PollFrequencyMs);
+                if (request == null)
+                {
+                    _logger.LogWarning("Shortcode request is null! This should never happen!");
+                    return null;
+                }
+                if (launchBrowserProcess)
+                {
+                    _logger.LogInformation("Launching process!");
+                    _browserLauncher.Launch($"https://mixer.com/go?code={request.Code}");
+                }
+
+                while (DateTime.UtcNow < request.ExpiresAt && !cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation($"Waiting for grant!");
+                    var resp = await _httpClient.GetAsync($"https://mixer.com/api/v1/oauth/shortcode/check/{request.DeviceId}");
+                    if (resp.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        var json = JSON.Parse(await resp.Content.ReadAsStringAsync());
+                        if (json == null)
+                        {
+                            return null;
+                        }
+                        if (json.TryGetKey("code", out var code))
+                        {
+                            return await ExchangeCodeForCredentials(code);
+                        }
+                        break;
+                    }
+                    await Task.Delay(request.PollFrequencyMs);
+                }
+            }
+            catch(TaskCanceledException)
+            {
+                return null;
             }
             throw new Exception("An unknown exception occurred while waiting for OAuth grant");
         }

@@ -47,9 +47,13 @@ namespace ChatCore.Config
                 {
                     value = value.Substring(1, value.Length - 2);
                 }
+                if(string.IsNullOrEmpty(value))
+                {
+                    return new List<string>();
+                }
                 return new List<string>(value.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' }));
             });
-            ConvertToString.TryAdd(typeof(List<string>), (fieldInfo, obj) => { return string.Join(",", (List<string>)obj.GetFieldValue(fieldInfo.Name)).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }); });
+            ConvertToString.TryAdd(typeof(List<string>), (fieldInfo, obj) => { return "\"" + string.Join(",", (List<string>)obj.GetFieldValue(fieldInfo.Name)).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }) + "\""; });
         }
 
         private static bool CreateDynamicFieldConverter(FieldInfo fieldInfo)

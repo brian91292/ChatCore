@@ -4,6 +4,7 @@ using ChatCore.Models.Twitch;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -254,7 +255,7 @@ namespace ChatCore.Services.Twitch
 
         private int _currentMessageCount = 0;
         private DateTime _lastResetTime = DateTime.UtcNow;
-        private ConcurrentQueue<string> _textMessageQueue = new ConcurrentQueue<string>();
+        private ConcurrentQueue<KeyValuePair<Assembly, string>> _textMessageQueue = new ConcurrentQueue<KeyValuePair<Assembly, string>>();
 
         private async Task ProcessQueuedMessages()
         {
@@ -276,7 +277,7 @@ namespace ChatCore.Services.Twitch
 
                 if(_textMessageQueue.TryDequeue(out var msg))
                 {
-                    SendRawMessage(msg, true);
+                    SendRawMessage(msg.Key, msg.Value, true);
                     _currentMessageCount++;
                 }
             }
@@ -298,7 +299,7 @@ namespace ChatCore.Services.Twitch
 
         internal void SendTextMessage(Assembly assembly, string message, string channel)
         {
-            _textMessageQueue.Enqueue($"PRIVMSG #{channel} :{message}");
+            _textMessageQueue.Enqueue(new KeyValuePair<Assembly, string>(assembly, $"PRIVMSG #{channel} :{message}"));
         }
 
         public void SendTextMessage(string message, string channel)

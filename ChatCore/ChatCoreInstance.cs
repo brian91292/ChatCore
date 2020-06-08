@@ -20,6 +20,7 @@ using System.Net.Http;
 using ChatCore.Config;
 using System.Collections.Concurrent;
 using ChatCore.Logging;
+using ChatCore.Models.Mixer;
 
 namespace ChatCore
 {
@@ -67,6 +68,7 @@ namespace ChatCore
                         .AddSingleton<FFZDataProvider>()
                         .AddSingleton<MixerService>()
                         .AddSingleton<MixerServiceManager>()
+                        .AddSingleton<MixerMessageParser>()
                         .AddSingleton<MixerDataProvider>()
                         .AddSingleton<MixerShortcodeAuthProvider>()
                         .AddSingleton<MixerAuthedHttpClient>()

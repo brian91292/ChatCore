@@ -279,6 +279,7 @@ namespace ChatCore.Services.Twitch
                         Channel = channel != null ? channel : new TwitchChannel()
                         {
                             Id = messageChannelName,
+                            Name = messageChannelName,
                             Roomstate = messageRoomstate
                         },
                         Emotes = messageEmotes.ToArray(), // TODO: test cheermote parsing

@@ -40,6 +40,11 @@ namespace ChatCore.Config
             ConvertFromString.TryAdd(typeof(Enum), (fieldInfo, value) => { return Enum.Parse(fieldInfo.FieldType, value); });
             ConvertToString.TryAdd(typeof(Enum), (fieldInfo, obj) => { return obj.GetFieldValue(fieldInfo.Name).ToString(); });
 
+            // DateTime handler
+            ConvertFromString.TryAdd(typeof(DateTime), (fieldInfo, value) => { return DateTime.FromFileTimeUtc(long.Parse(value)); });
+            ConvertToString.TryAdd(typeof(DateTime), (fieldInfo, obj) => { return ((DateTime)obj.GetFieldValue(fieldInfo.Name)).ToFileTimeUtc().ToString(); });
+
+
             // List<string> handlers
             ConvertFromString.TryAdd(typeof(List<string>), (fieldInfo, value) =>
             {

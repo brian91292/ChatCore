@@ -32,7 +32,7 @@ namespace ChatCore.Services.Mixer
             }
             if (_authProvider.Credentials.Mixer_ExpiresAt > DateTime.UtcNow.AddMinutes(1))
             {
-                //_logger.LogInformation($"Adding mixer auth header!");
+                _logger.LogInformation($"Auth token expires in {(_authProvider.Credentials.Mixer_ExpiresAt - DateTime.UtcNow.AddMinutes(1)).ToString()}, Adding mixer auth header!");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _authProvider.Credentials.Mixer_AccessToken);
             }
         }

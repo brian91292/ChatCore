@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Threading;
 using ChatCore.SimpleJSON;
 using ChatCore.Models.Mixer;
+using System.Collections.ObjectModel;
 
 namespace ChatCore.Services.Mixer
 {
@@ -17,13 +18,60 @@ namespace ChatCore.Services.Mixer
     {
         public bool ParseRawMessage(string rawMessage, ConcurrentDictionary<string, IChatChannel> channelInfo, IChatUser loggedInUser, out IChatMessage[] parsedMessage)
         {
-            throw new NotImplementedException();
+            var parsedMessages = new List<IChatMessage>();
+            parsedMessage = parsedMessages.ToArray();
+            if (string.IsNullOrEmpty(rawMessage))
+            {
+                return false;
+            }
+            var json = JSON.Parse(rawMessage);
+            if(json == null)
+            {
+                return false;
+            }
+            if(!json.TryGetKey("type", out var t))
+            {
+                return false;
+            }
+            var type = t.Value;
+            var messageMeta = new Dictionary<string, string>();
+            foreach(var key in json.Keys)
+            {
+                messageMeta.Add(key, json[key].Value);
+            }
+
+            var mixerMessage = new MixerMessage()
+            {
+                Type = type,
+                Metadata = new ReadOnlyDictionary<string, string>(messageMeta)
+            };
+            switch(type)
+            {
+                case "reply":
+                    mixerMessage.Message = rawMessage;
+                    mixerMessage.Id = json.TryGetKey("id", out var id) ? id.AsInt.ToString() : "";
+                    parsedMessages.Add(mixerMessage);
+                    return true;
+                default:
+                    break;
+            }
+            return false;
         }
+    }
+
+    public class SentMessageInfo
+    {
+        public Assembly Assembly;
+        public string MessageType;
     }
 
     public class MixerService : ChatServiceBase, IChatService
     {
-        public string DisplayName { get; } = "Mixer"; 
+        private ConcurrentDictionary<string, IChatChannel> _channels = new ConcurrentDictionary<string, IChatChannel>();
+        public ReadOnlyDictionary<string, IChatChannel> Channels;
+
+        public string DisplayName { get; } = "Mixer";
+
         public MixerService(ILogger<MixerService> logger, MixerMessageParser messageParser, MixerDataProvider mixerDataProvider, IUserAuthProvider authManager, Random rand)
         {
             _logger = logger;
@@ -31,6 +79,8 @@ namespace ChatCore.Services.Mixer
             _messageParser = messageParser;
             _authManager = authManager;
             _rand = rand;
+
+            Channels = new ReadOnlyDictionary<string, IChatChannel>(_channels);
 
             _authManager.OnCredentialsUpdated += _authManager_OnCredentialsUpdated;
         }
@@ -49,11 +99,9 @@ namespace ChatCore.Services.Mixer
         private IUserAuthProvider _authManager;
         private Random _rand;
         private bool _isStarted = false;
-        private string _anonUsername;
         private object _messageReceivedLock = new object(), _initLock = new object();
-        private string _loggedInUsername;
-        private Dictionary<string, IChatChannel> _channels = new Dictionary<string, IChatChannel>();
         private CancellationTokenSource _processMessageQueueCancellation = null;
+        private ConcurrentDictionary<string, SentMessageInfo> _sentMessageInfo = new ConcurrentDictionary<string, SentMessageInfo>();
 
         internal async void Start(bool forceReconnect = false)
         {
@@ -69,7 +117,6 @@ namespace ChatCore.Services.Mixer
                 {
                     _isStarted = true;
                     shouldStart = true;
-                    //_websocketService.Connect("wss://chat.mixer.com:443", forceReconnect);
                     _processMessageQueueCancellation = new CancellationTokenSource();
                     Task.Run(ProcessQueuedMessages, _processMessageQueueCancellation.Token);
                 }
@@ -106,8 +153,6 @@ namespace ChatCore.Services.Mixer
                     _channels.Clear();
                     // TODO: reimplement this
                     //_channels.Clear();
-                    //LoggedInUser = null;
-                    _loggedInUsername = null;
                 }
             }
         }
@@ -116,6 +161,7 @@ namespace ChatCore.Services.Mixer
         {
             foreach (var channel in _authManager.Credentials.Mixer_Channels)
             {
+                _logger.LogInformation($"Trying to join {channel}");
                 await TryJoinMixerChannel(channel);
             }
         }
@@ -160,7 +206,7 @@ namespace ChatCore.Services.Mixer
                         try
                         {
                             socket.Connect(server);
-                            _channels.Add(channel, new MixerChannel()
+                            _channels.TryAdd(channel, new MixerChannel()
                             {
                                 Id = channelId,
                                 Socket = socket
@@ -184,38 +230,49 @@ namespace ChatCore.Services.Mixer
             lock (_messageReceivedLock)
             {
                 // TODO: finish implementing the message parser
-                //if (_messageParser.ParseRawMessage(message, _channels, LoggedInUser, out var parsedMessages))
-                //{ 
-                //    foreach(MixerMessage mixerMessage in parsedMessages)
-                //    {
-                //        switch(mixerMessage.Type)
-                //        {
-                //            case "reply":
-
-                //                break;
-                //        }
-                //    }
-                //}
+                if (_messageParser.ParseRawMessage(message, _channels, null, out var parsedMessages))
+                {
+                    foreach (MixerMessage mixerMessage in parsedMessages)
+                    {
+                        switch (mixerMessage.Type)
+                        {
+                            case "reply":
+                                if(_sentMessageInfo.TryGetValue(mixerMessage.Id, out var sentMessageInfo))
+                                {
+                                    _logger.LogInformation($"Re-broadcasting message {mixerMessage.Id} to local clients.");
+                                    Socket_OnMessageReceived(sentMessageInfo.Assembly, mixerMessage.Message.Replace("\"type\":\"reply\"", $"\"type\":\"{sentMessageInfo.MessageType}\""));
+                                }
+                                break;
+                        }
+                    }
+                }
             }
         }
 
-        private object _forwardLock = new object();
-        private HashSet<long> _forwardOnReply = new HashSet<long>();
-        private long currentMsgId = 0;
+        private object _messageIdIncrementLock = new object();
+        private long _currentMsgId = 0;
+        private long GetCurrentMessageId()
+        {
+            lock (_messageIdIncrementLock)
+            {
+                return _currentMsgId++;
+            }
+        }
         private void SendMixerMessageOfType(Assembly assembly, string method, IChatChannel channel, string rawArguments, bool forwardToSharedClients = false)
         {
             if (channel is MixerChannel mixerChannel)
             {
                 if (mixerChannel.Socket.IsConnected)
                 {
-                    var msgId = currentMsgId++;
+                    var msgId = GetCurrentMessageId();
                     mixerChannel.Socket.SendMessage($"{{\"type\": \"method\", \"method\": \"{method}\", \"arguments\": {rawArguments}, \"id\": {msgId}}}");
                     if (forwardToSharedClients)
                     {
-                        lock (_forwardLock)
+                        _sentMessageInfo.TryAdd(msgId.ToString(), new SentMessageInfo()
                         {
-                            _forwardOnReply.Add(msgId);
-                        }
+                            Assembly = assembly,
+                            MessageType = method
+                        });
                     }
                 }
             }
@@ -228,7 +285,6 @@ namespace ChatCore.Services.Mixer
                 SendMixerMessageOfType(Assembly.GetCallingAssembly(), method, channel, rawArguments);
             }
         }
-
 
 
         private int _currentMessageCount = 0;

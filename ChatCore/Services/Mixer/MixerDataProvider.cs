@@ -45,6 +45,10 @@ namespace ChatCore.Services.Mixer
                     return json["id"].Value;
                 }
             }
+            else
+            {
+                _logger.LogWarning($"Error trying to get channel id for {username}! Status code: {resp.StatusCode}, Error: {await resp.Content.ReadAsStringAsync()}");
+            }
             return null;
         }
 
@@ -68,7 +72,7 @@ namespace ChatCore.Services.Mixer
             }
             else
             {
-                _logger.LogWarning($"Error trying to get channel details! {await resp.Content.ReadAsStringAsync()}");
+                _logger.LogWarning($"Error trying to get channel details! Status code: {resp.StatusCode}, Error: {await resp.Content.ReadAsStringAsync()}");
             }
             return null;
         }
@@ -85,6 +89,10 @@ namespace ChatCore.Services.Mixer
                 {
                     return json["channel"]["userId"].Value;
                 }
+            }
+            else
+            {
+                _logger.LogWarning($"Error trying to get logged in user id! Status code: {resp.StatusCode}, Error: {await resp.Content.ReadAsStringAsync()}");
             }
             return null;
         }

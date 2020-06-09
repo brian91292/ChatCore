@@ -85,10 +85,13 @@ namespace ChatCore.Services
         private string _credentialsPath;
         private ObjectSerializer _credentialSerializer;
 
-        public void Save()
+        public void Save(bool callback = true)
         {
             _credentialSerializer.Save(Credentials, _credentialsPath);
-            OnCredentialsUpdated?.Invoke(Credentials);
+            if (callback)
+            {
+                OnCredentialsUpdated?.Invoke(Credentials);
+            }
         }
 
         private CancellationTokenSource _cancellationToken;
@@ -115,9 +118,10 @@ namespace ChatCore.Services
             var creds = await _mixerAuthProvider.TryRefreshCredentials(Credentials.Mixer_RefreshToken);
             if(creds != null)
             {
+                Credentials.Mixer_RefreshToken = creds.RefreshToken;
                 Credentials.Mixer_AccessToken = creds.AccessToken;
                 Credentials.Mixer_ExpiresAt = creds.ExpiresAt;
-                Save();
+                Save(false);
             }
             return creds != null;
         }

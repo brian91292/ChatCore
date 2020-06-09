@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ChatCore.Services.Twitch
@@ -280,6 +281,7 @@ namespace ChatCore.Services.Twitch
                     SendRawMessage(msg.Key, msg.Value, true);
                     _currentMessageCount++;
                 }
+                Thread.Sleep(10);
             }
         }
 

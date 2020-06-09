@@ -318,6 +318,7 @@ namespace ChatCore.Services.Mixer
                         //SendRawMessage(msg, true);
                         _currentMessageCount++;
                     }
+                    Thread.Sleep(10);
                 }
             }
             catch(TaskCanceledException) { }

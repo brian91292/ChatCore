@@ -241,6 +241,7 @@ namespace ChatCore.Services.Mixer
                                 {
                                     _logger.LogInformation($"Re-broadcasting message {mixerMessage.Id} to local clients.");
                                     Socket_OnMessageReceived(sentMessageInfo.Assembly, mixerMessage.Message.Replace("\"type\":\"reply\"", $"\"type\":\"{sentMessageInfo.MessageType}\""));
+                                    _sentMessageInfo.TryRemove(mixerMessage.Id, out var removedMessageInfo);
                                 }
                                 break;
                         }
@@ -324,10 +325,10 @@ namespace ChatCore.Services.Mixer
 
         public void SendTextMessage(string message, IChatChannel channel)
         {
-            //if(channel is MixerChannel)
-            //{
-            //    SendTextMessage(message, channel.Id);
-            //}
+            if (channel is MixerChannel)
+            {
+                SendMixerMessageOfType(Assembly.GetCallingAssembly(), "msg", channel, $"[\"{message}\"]");
+            }
         }
     }
 }

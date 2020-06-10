@@ -12,11 +12,15 @@ namespace ChatCore.Services.Mixer
 {
     public class MixerMessageParser : IChatMessageParser
     {
-        public MixerMessageParser(ILogger<MixerMessageParser> logger)
+        public MixerMessageParser(ILogger<MixerMessageParser> logger, MainSettingsProvider settings, IEmojiParser emojiParser)
         {
             _logger = logger;
+            _settings = settings;
+            _emojiParser = emojiParser;
         }
         private ILogger _logger;
+        MainSettingsProvider _settings;
+        IEmojiParser _emojiParser;
 
         public bool ParseRawMessage(string rawMessage, ConcurrentDictionary<string, IChatChannel> channelInfo, IChatUser loggedInUser, out IChatMessage[] parsedMessage)
         {
@@ -96,23 +100,37 @@ namespace ChatCore.Services.Mixer
                             case "emoticon":
                                 if (msg.Value.TryGetKey("pack", out var p))
                                 {
-                                    var startIndex = messageText.Length > 0 ? messageText.Length - 1 : 0;
                                     var em = new MixerEmote()
                                     {
                                         Id = "MixerEmote_" + text,
                                         Name = text,
                                         IsAnimated = false,
-                                        StartIndex = startIndex,
-                                        EndIndex = startIndex + text.Length,
+                                        StartIndex = messageText.Length,
+                                        EndIndex = messageText.Length + text.Length,
                                         Uri = p.Value
                                     };
-                                    _logger.LogInformation($"Emote: {text}, Start: {em.StartIndex}, End: {em.EndIndex}");
+                                    //_logger.LogInformation($"Emote: \"{text}\", MessageLen: {messageText.Length}, TextLen: {text.Length}, Start: {em.StartIndex}, End: {em.EndIndex}");
                                     messageEmotes.Add(em);
                                 }
                                 break;
                         }
+                        //_logger.LogInformation($"Appending \"{text}\", type: {partType}");
                         messageText.Append(text);
                     }
+
+                    if (_settings.ParseEmojis)
+                    {
+                        // Parse all emojis
+                        messageEmotes.AddRange(_emojiParser.FindEmojis(messageText.ToString()));
+                    }
+
+                    // Sort the emotes in descending order to make replacing them in the string later on easier
+                    messageEmotes.Sort((a, b) =>
+                    {
+                        return b.StartIndex - a.StartIndex;
+                    });
+
+                    _logger.LogInformation($"Message: \"{messageText.ToString()}\", Length: {messageText.Length}");
                 }
 
                 bool isModerator = false, isBroadcaster = false, isSubscriber = false;
@@ -138,15 +156,16 @@ namespace ChatCore.Services.Mixer
                 var userBadges = new List<IChatBadge>();
                 if (messageJsonData.TryGetKey("user_avatar", out var ua))
                 {
-                    if(ua.IsNull)
+                    var avatar = ua.Value;
+                    if(ua.IsNull || avatar == "null")
                     {
-                        ua.Value = "https://mixer.com/_latest/assets/images/main/avatars/default.png";
+                        avatar = "https://mixer.com/_latest/assets/images/main/avatars/default.png";
                     }
                     userBadges.Add(new MixerBadge()
                     {
                         Name = userName + "_UserAvatar",
                         Id = $"Mixer_{userName}_UserAvatar",
-                        Uri = ua.Value + "?width=128&height=128"
+                        Uri = avatar + "?width=128&height=128"
                     });
                 }
 

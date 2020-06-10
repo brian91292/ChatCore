@@ -130,7 +130,7 @@ namespace ChatCore.Services.Mixer
                         return b.StartIndex - a.StartIndex;
                     });
 
-                    _logger.LogInformation($"Message: \"{messageText.ToString()}\", Length: {messageText.Length}");
+                    //_logger.LogInformation($"Message: \"{messageText.ToString()}\", Length: {messageText.Length}");
                 }
 
                 bool isModerator = false, isBroadcaster = false, isSubscriber = false;

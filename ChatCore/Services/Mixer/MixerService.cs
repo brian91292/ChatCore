@@ -143,7 +143,7 @@ namespace ChatCore.Services.Mixer
                     Action OnOpenMethod = () =>
                     {
                         // Send the mixer auth command after the connection to the server is opened successfully
-                        SendMixerMessageOfType("auth", channel, $"[{channelId}, {userId}, \"{channelDetails.authkey}\"]");
+                        SendMixerMessageOfType("auth", channelId, $"[{channelId}, {userId}, \"{channelDetails.authkey}\"]");
                     };
                     socket.OnOpen -= OnOpenMethod;
                     socket.OnOpen += OnOpenMethod;
@@ -155,9 +155,10 @@ namespace ChatCore.Services.Mixer
                         try
                         {
                             socket.Connect(server);
-                            _channels.TryAdd(channel, new MixerChannel()
+                            _channels.TryAdd(channelId, new MixerChannel()
                             {
                                 Id = channelId,
+                                Name = channel,
                                 Socket = socket
                             });
                             return;
@@ -175,7 +176,7 @@ namespace ChatCore.Services.Mixer
 
         private void Socket_OnMessageReceived(Assembly source, string message)
         {
-            _logger.LogInformation($"Mixer Message: {message}");
+            //_logger.LogInformation($"Mixer Message: {message}");
             lock (_messageReceivedLock)
             {
                 // TODO: finish implementing the message parser
@@ -192,6 +193,9 @@ namespace ChatCore.Services.Mixer
                                     Socket_OnMessageReceived(sentMessageInfo.Assembly, mixerMessage.Message.Replace("\"type\":\"reply\"", $"\"type\":\"{sentMessageInfo.MessageType}\""));
                                     _sentMessageInfo.TryRemove(mixerMessage.Id, out var removedMessageInfo);
                                 }
+                                break;
+                            case "ChatMessage":
+                                _onTextMessageReceivedCallbacks.InvokeAll(source, this, mixerMessage, _logger);
                                 break;
                         }
                     }
@@ -228,9 +232,9 @@ namespace ChatCore.Services.Mixer
             }
         }
 
-        public void SendMixerMessageOfType(string method, string channelName, string rawArguments)
+        public void SendMixerMessageOfType(string method, string channelId, string rawArguments)
         {
-            if (_channels.TryGetValue(channelName, out var channel))
+            if (_channels.TryGetValue(channelId, out var channel))
             {
                 SendMixerMessageOfType(Assembly.GetCallingAssembly(), method, channel, rawArguments);
             }

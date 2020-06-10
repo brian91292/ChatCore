@@ -133,7 +133,8 @@ namespace ChatCore.Services.Mixer
                     //_logger.LogInformation($"Message: \"{messageText.ToString()}\", Length: {messageText.Length}");
                 }
 
-                bool isModerator = false, isBroadcaster = false, isSubscriber = false;
+                // Figure out what roles the user has assigned
+                bool isModerator = false, isBroadcaster = false, isSubscriber = false, isStaff = false, isPro = false;
                 if (messageJsonData.TryGetKey("user_roles", out var ur))
                 {
                     foreach (var role in ur.AsArray)
@@ -149,10 +150,36 @@ namespace ChatCore.Services.Mixer
                             case "Mod":
                                 isModerator = true;
                                 break;
+                            case "Staff":
+                                isStaff = true;
+                                break;
+                            case "Pro":
+                                isPro = true;
+                                break;
                         }
                     }
                 }
 
+                // Figure out the users color depending on their user roles
+                string userColor = "#03cffc";
+                if(isBroadcaster)
+                {
+                    userColor = "#ffffff";
+                }
+                else if(isStaff)
+                {
+                    userColor = "#fcf003";
+                }
+                else if(isModerator)
+                {
+                    userColor = "#36f007";
+                }
+                else if(isPro)
+                {
+                    userColor = "#df03fc";
+                }
+
+                // Grab the users avatar, or the default avatar if one doesn't exist
                 var userBadges = new List<IChatBadge>();
                 if (messageJsonData.TryGetKey("user_avatar", out var ua))
                 {
@@ -169,9 +196,11 @@ namespace ChatCore.Services.Mixer
                     });
                 }
 
+
                 IChatChannel mixerChannel = null;
                 if (messageJsonData.TryGetKey("channel", out var c))
                 {
+                    // If this message belongs to a channel, try to get the channel from the dict. This should never fail.
                     string channelId = c.AsInt.ToString();
                     if (!channelInfo.TryGetValue(channelId, out mixerChannel))
                     {
@@ -179,7 +208,6 @@ namespace ChatCore.Services.Mixer
                         return false;
                     }
                 }
-
 
                 var newMessage = new MixerMessage()
                 {
@@ -189,9 +217,12 @@ namespace ChatCore.Services.Mixer
                         Id = messageJsonData.TryGetKey("user_id", out var uid) ? uid.AsInt.ToString() : "",
                         UserName = userName,
                         DisplayName = userName,
-                        Color = ChatUtils.GetNameColor(userName),
+                        Color = userColor ?? ChatUtils.GetNameColor(userName),
                         IsModerator = isModerator,
                         IsBroadcaster = isBroadcaster,
+                        IsSubscriber = isSubscriber,
+                        IsStaff = isStaff,
+                        IsPro = isPro,
                         Badges = userBadges.ToArray()
                     },
                     Channel = mixerChannel,

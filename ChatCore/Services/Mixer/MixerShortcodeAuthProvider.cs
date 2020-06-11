@@ -84,7 +84,7 @@ namespace ChatCore.Services.Mixer
                 {
                     RefreshToken = json.TryGetKey("refresh_token", out var r) ? r.Value : "",
                     AccessToken = json.TryGetKey("access_token", out var a) ? a.Value : "",
-                    ExpiresAt = json.TryGetKey("expires_in", out var e) ? DateTime.UtcNow.AddMinutes(e.AsInt) : DateTime.UtcNow
+                    ExpiresAt = json.TryGetKey("expires_in", out var e) ? DateTime.UtcNow.AddSeconds(e.AsInt) : DateTime.UtcNow
                 };
             }
             return null;

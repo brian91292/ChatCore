@@ -84,10 +84,12 @@ namespace ChatCore.Services
         private MixerShortcodeAuthProvider _mixerAuthProvider;
         private string _credentialsPath;
         private ObjectSerializer _credentialSerializer;
+        private DateTime _lastCredentialUpdateTime = DateTime.UtcNow;
 
         public void Save(bool callback = true)
         {
             _credentialSerializer.Save(Credentials, _credentialsPath);
+            _lastCredentialUpdateTime = DateTime.UtcNow;
             if (callback)
             {
                 OnCredentialsUpdated?.Invoke(Credentials);
@@ -113,15 +115,34 @@ namespace ChatCore.Services
 
 
 
+        SemaphoreSlim _refreshCredentialsLock = new SemaphoreSlim(1, 1);
         public async Task<bool> TryRefreshMixerCredentials()
         {
-            var creds = await _mixerAuthProvider.TryRefreshCredentials(Credentials.Mixer_RefreshToken);
-            if(creds != null)
+            var startTime = DateTime.UtcNow;
+            await _refreshCredentialsLock.WaitAsync();
+            if(startTime < _lastCredentialUpdateTime)
             {
-                Credentials.Mixer_RefreshToken = creds.RefreshToken;
-                Credentials.Mixer_AccessToken = creds.AccessToken;
-                Credentials.Mixer_ExpiresAt = creds.ExpiresAt;
-                Save(false);
+                return true;
+            }
+            OAuthCredentials creds = null;
+            try
+            {
+                creds = await _mixerAuthProvider.TryRefreshCredentials(Credentials.Mixer_RefreshToken);
+                if (creds != null)
+                {
+                    Credentials.Mixer_RefreshToken = creds.RefreshToken;
+                    Credentials.Mixer_AccessToken = creds.AccessToken;
+                    Credentials.Mixer_ExpiresAt = creds.ExpiresAt;
+                    Save(false);
+                }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "An unknown exception occurred while refreshing mixer credentials!");
+            }
+            finally
+            {
+                _refreshCredentialsLock.Release();
             }
             return creds != null;
         }

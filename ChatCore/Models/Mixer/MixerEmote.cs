@@ -9,16 +9,13 @@ namespace ChatCore.Models.Mixer
     public class MixerEmote : IChatEmote
     {
         public string Id { get; internal set; }
-
         public string Name { get; internal set; }
-
         public string Uri { get; internal set; }
-
         public int StartIndex { get; internal set; }
-
         public int EndIndex { get; internal set; }
-
         public bool IsAnimated { get; internal set; }
+        public EmoteType Type { get; internal set; } = EmoteType.SingleImage;
+        public ImageRect UVs { get; internal set; }
 
         public MixerEmote() { }
         public MixerEmote(string json)
@@ -30,6 +27,8 @@ namespace ChatCore.Models.Mixer
             if (obj.TryGetKey(nameof(StartIndex), out var startIndex)) { StartIndex = startIndex.AsInt; }
             if (obj.TryGetKey(nameof(EndIndex), out var endIndex)) { EndIndex = endIndex.AsInt; }
             if (obj.TryGetKey(nameof(IsAnimated), out var isAnimated)) { IsAnimated = isAnimated.AsBool; }
+            if (obj.TryGetKey(nameof(Type), out var type)) { Type = Enum.TryParse<EmoteType>(type.Value, out var typeEnum) ? typeEnum : EmoteType.SingleImage; }
+            if (obj.TryGetKey(nameof(UVs), out var uvs)) { UVs = new ImageRect(uvs.Value); }
         }
         public JSONObject ToJson()
         {
@@ -40,6 +39,8 @@ namespace ChatCore.Models.Mixer
             obj.Add(nameof(StartIndex), new JSONNumber(StartIndex));
             obj.Add(nameof(EndIndex), new JSONNumber(EndIndex));
             obj.Add(nameof(IsAnimated), new JSONBool(IsAnimated));
+            obj.Add(nameof(Type), new JSONString(Type.ToString()));
+            obj.Add(nameof(UVs), UVs.ToJson());
             return obj;
         }
     }

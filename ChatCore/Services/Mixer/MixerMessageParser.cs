@@ -1,4 +1,5 @@
 ﻿using ChatCore.Interfaces;
+using ChatCore.Models;
 using ChatCore.Models.Mixer;
 using ChatCore.SimpleJSON;
 using Microsoft.Extensions.Logging;
@@ -98,16 +99,26 @@ namespace ChatCore.Services.Mixer
                         switch (partType)
                         {
                             case "emoticon":
-                                if (msg.Value.TryGetKey("pack", out var p))
+                                if (msg.Value.TryGetKey("pack", out var p) && msg.Value.TryGetKey("source", out var s))
                                 {
+                                    var imageRect = new ImageRect();
+                                    if (msg.Value.TryGetKey("coords", out var coords))
+                                    {
+                                        imageRect.x = coords.TryGetKey("x", out var x) ? x.AsInt : 0;
+                                        imageRect.y = coords.TryGetKey("y", out var y) ? y.AsInt : 0;
+                                        imageRect.width = coords.TryGetKey("width", out var width) ? width.AsInt : 0;
+                                        imageRect.height = coords.TryGetKey("height", out var height) ? height.AsInt : 0;
+                                    }
                                     var em = new MixerEmote()
                                     {
                                         Id = "MixerEmote_" + text,
                                         Name = text,
                                         IsAnimated = false,
+                                        Type = EmoteType.SpriteSheet,
+                                        UVs = imageRect,
                                         StartIndex = messageText.Length,
                                         EndIndex = messageText.Length + text.Length,
-                                        Uri = p.Value
+                                        Uri = s.Value == "builtin" ? $"https://mixer.com/_latest/emoticons/{p.Value}.png" : p.Value
                                     };
                                     //_logger.LogInformation($"Emote: \"{text}\", MessageLen: {messageText.Length}, TextLen: {text.Length}, Start: {em.StartIndex}, End: {em.EndIndex}");
                                     messageEmotes.Add(em);

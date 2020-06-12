@@ -70,6 +70,18 @@
             The purpose of this class is to provide a simple interface for converting an old StreamCore config file into ChatCore.
             </summary>
         </member>
+        <member name="P:ChatCore.Interfaces.IChatEmote.Type">
+            <summary>
+            The type of resource associated with this chat emote
+            </summary>
+        </member>
+        <member name="P:ChatCore.Interfaces.IChatEmote.UVs">
+            <summary>
+            The UV coordinates of this emote, only used if <see cref="P:ChatCore.Interfaces.IChatEmote.Type"/> is <see cref="F:ChatCore.Models.EmoteType.SpriteSheet"/>
+            <para>X, Y = X/Y Position</para>
+            <para>Z, W = Width/Height</para>
+            </summary>
+        </member>
         <member name="P:ChatCore.Interfaces.IChatMessage.Id">
             <summary>
             The internal identifier for this chat message

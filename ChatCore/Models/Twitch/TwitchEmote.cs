@@ -2,6 +2,7 @@
 using ChatCore.SimpleJSON;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 
 namespace ChatCore.Models.Twitch
@@ -14,6 +15,8 @@ namespace ChatCore.Models.Twitch
         public int StartIndex { get; internal set; }
         public int EndIndex { get; internal set; }
         public bool IsAnimated { get; internal set; }
+        public EmoteType Type { get; internal set; } = EmoteType.SingleImage;
+        public ImageRect UVs { get; internal set; }
         /// <summary>
         /// The number of bits associated with this emote (probably a cheermote)
         /// </summary>
@@ -35,6 +38,8 @@ namespace ChatCore.Models.Twitch
             if (obj.TryGetKey(nameof(IsAnimated), out var isAnimated)) { IsAnimated = isAnimated.AsBool; }
             if (obj.TryGetKey(nameof(Bits), out var bits)) { Bits = bits.AsInt; }
             if (obj.TryGetKey(nameof(Color), out var color)) { Color = color.Value; }
+            if (obj.TryGetKey(nameof(Type), out var type)) { Type = Enum.TryParse<EmoteType>(type.Value, out var typeEnum) ? typeEnum : EmoteType.SingleImage; }
+            if (obj.TryGetKey(nameof(UVs), out var uvs)) { UVs = new ImageRect(uvs.Value); }
         }
         public JSONObject ToJson()
         {
@@ -47,6 +52,8 @@ namespace ChatCore.Models.Twitch
             obj.Add(nameof(IsAnimated), new JSONBool(IsAnimated));
             obj.Add(nameof(Bits), new JSONNumber(Bits));
             obj.Add(nameof(Color), new JSONString(Color));
+            obj.Add(nameof(Type), new JSONString(Type.ToString()));
+            obj.Add(nameof(UVs), UVs.ToJson());
             return obj;
         }
     }

@@ -40,6 +40,11 @@ namespace ChatCore.Config
             ConvertFromString.TryAdd(typeof(Enum), (fieldInfo, value) => { return Enum.Parse(fieldInfo.FieldType, value); });
             ConvertToString.TryAdd(typeof(Enum), (fieldInfo, obj) => { return obj.GetFieldValue(fieldInfo.Name).ToString(); });
 
+            // DateTime handler
+            ConvertFromString.TryAdd(typeof(DateTime), (fieldInfo, value) => { return DateTime.FromFileTimeUtc(long.Parse(value)); });
+            ConvertToString.TryAdd(typeof(DateTime), (fieldInfo, obj) => { return ((DateTime)obj.GetFieldValue(fieldInfo.Name)).ToFileTimeUtc().ToString(); });
+
+
             // List<string> handlers
             ConvertFromString.TryAdd(typeof(List<string>), (fieldInfo, value) =>
             {
@@ -47,9 +52,13 @@ namespace ChatCore.Config
                 {
                     value = value.Substring(1, value.Length - 2);
                 }
+                if(string.IsNullOrEmpty(value))
+                {
+                    return new List<string>();
+                }
                 return new List<string>(value.Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }).Split(new char[] { ',' }));
             });
-            ConvertToString.TryAdd(typeof(List<string>), (fieldInfo, obj) => { return string.Join(",", (List<string>)obj.GetFieldValue(fieldInfo.Name)).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }); });
+            ConvertToString.TryAdd(typeof(List<string>), (fieldInfo, obj) => { return "\"" + string.Join(",", (List<string>)obj.GetFieldValue(fieldInfo.Name)).Replace(" ", "").ToLower().TrimEnd(new char[] { ',' }) + "\""; });
         }
 
         private static bool CreateDynamicFieldConverter(FieldInfo fieldInfo)

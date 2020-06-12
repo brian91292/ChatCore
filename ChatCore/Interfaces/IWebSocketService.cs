@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ChatCore.Interfaces
 {
-    public interface IWebSocketService
+    public interface IWebSocketService : IDisposable
     {
         bool IsConnected { get; }
         bool AutoReconnect { get; set; }

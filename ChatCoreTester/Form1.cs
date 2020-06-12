@@ -65,7 +65,7 @@ namespace StreamCoreTester
         private void StreamServiceProvider_OnMessageReceived(IChatService svc, IChatMessage msg)
         {
             Console.WriteLine($"{msg.Sender.DisplayName}: {msg.Message}");
-            Console.WriteLine(msg.ToJson().ToString());
+            //Console.WriteLine(msg.ToJson().ToString());
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -76,6 +76,11 @@ namespace StreamCoreTester
         private void button2_Click(object sender, EventArgs e)
         {
             streamingService.GetTwitchService().JoinChannel("xqcow");
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            streamingService.GetMixerService().SendTextMessage("This is a test message :)", streamingService.GetMixerService().Channels.Values.First());
         }
     }
 }

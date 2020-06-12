@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{67A03E3C-6198-4F8D-BEA0-779F96F4CFA6}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>StreamCoreTester</RootNamespace>
-    <AssemblyName>StreamCoreTester</AssemblyName>
+    <RootNamespace>ChatCoreTester</RootNamespace>
+    <AssemblyName>ChatCoreTester</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -78,6 +78,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

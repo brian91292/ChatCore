@@ -453,6 +453,10 @@ namespace ChatCore.SimpleJSON
         }
         internal static string Escape(string aText)
         {
+            if(string.IsNullOrEmpty(aText))
+            {
+                return "";
+            }
             var sb = EscapeBuilder;
             sb.Length = 0;
             if (sb.Capacity < aText.Length + aText.Length / 10)
@@ -781,6 +785,14 @@ namespace ChatCore.SimpleJSON
             }
         }
 
+        public IReadOnlyList<JSONNode> List
+        {
+            get
+            {
+                return m_List;
+            }
+        }
+
 
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
@@ -802,6 +814,16 @@ namespace ChatCore.SimpleJSON
             if (aMode == JSONTextMode.Indent)
                 aSB.AppendLine().Append(' ', aIndent);
             aSB.Append(']');
+        }
+
+        public JSONArray() { }
+
+        public JSONArray(IEnumerable<string> array)
+        {
+            foreach(var item in array)
+            {
+                Add(new JSONString(item));
+            }
         }
     }
     // End of JSONArray

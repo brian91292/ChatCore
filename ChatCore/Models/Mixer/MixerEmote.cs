@@ -4,9 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ChatCore.Models
+namespace ChatCore.Models.Mixer
 {
-    public class UnknownChatEmote : IChatEmote
+    public class MixerEmote : IChatEmote
     {
         public string Id { get; internal set; }
         public string Name { get; internal set; }
@@ -17,8 +17,8 @@ namespace ChatCore.Models
         public EmoteType Type { get; internal set; } = EmoteType.SingleImage;
         public ImageRect UVs { get; internal set; }
 
-        public UnknownChatEmote() { }
-        public UnknownChatEmote(string json)
+        public MixerEmote() { }
+        public MixerEmote(string json)
         {
             JSONNode obj = JSON.Parse(json);
             if (obj.TryGetKey(nameof(Id), out var id)) { Id = id.Value; }

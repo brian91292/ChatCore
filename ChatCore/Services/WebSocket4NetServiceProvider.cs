@@ -10,7 +10,7 @@ using WebSocket4Net;
 
 namespace ChatCore.Services
 {
-    public class WebSocket4NetServiceProvider : IWebSocketService, IDisposable
+    public class WebSocket4NetServiceProvider : IWebSocketService
     {
         public bool IsConnected => !(_client is null) && (_client.State == WebSocketState.Open || _client.State == WebSocketState.Connecting);
         public bool AutoReconnect { get; set; } = true;

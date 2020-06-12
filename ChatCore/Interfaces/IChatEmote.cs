@@ -2,6 +2,7 @@
 using ChatCore.SimpleJSON;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 
 namespace ChatCore.Interfaces
@@ -14,6 +15,16 @@ namespace ChatCore.Interfaces
         int StartIndex { get; }
         int EndIndex { get; }
         bool IsAnimated { get; }
+        /// <summary>
+        /// The type of resource associated with this chat emote
+        /// </summary>
+        EmoteType Type { get; }
+        /// <summary>
+        /// The UV coordinates of this emote, only used if <see cref="Type"/> is <see cref="EmoteType.SpriteSheet"/>
+        /// <para>X, Y = X/Y Position</para>
+        /// <para>Z, W = Width/Height</para>
+        /// </summary>
+        ImageRect UVs { get; }
         JSONObject ToJson();
     }
 }

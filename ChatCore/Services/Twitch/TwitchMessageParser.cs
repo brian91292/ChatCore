@@ -29,22 +29,8 @@ namespace ChatCore.Services.Twitch
         private ILogger _logger;
         private TwitchDataProvider _twitchDataProvider;
         private IEmojiParser _emojiParser;
-        private Dictionary<int, string> _userColors = new Dictionary<int, string>();
         private MainSettingsProvider _settings;
-        private string GetNameColor(string name)
-        {
-            int nameHash = name.GetHashCode();
-            if (!_userColors.TryGetValue(nameHash, out var nameColor))
-            {
-                // Generate a psuedo-random color based on the users display name
-                Random rand = new Random(nameHash);
-                int argb = (rand.Next(255) << 16) + (rand.Next(255) << 8) + rand.Next(255);
-                string colorString = string.Format("#{0:X6}FF", argb);
-                _userColors.Add(nameHash, colorString);
-                nameColor = colorString;
-            }
-            return nameColor;
-        }
+
 
         /// <summary>
         /// Takes a raw Twitch message and parses it into an IChatMessage
@@ -258,15 +244,17 @@ namespace ChatCore.Services.Twitch
                         }
                     }
 
-                    string messageSenderName = messageMeta.TryGetValue("display-name", out var name) ? name : match.Groups["HostName"].Success ? match.Groups["HostName"].Value.Split('!')[0] : "";
+                    string userName = match.Groups["HostName"].Success ? match.Groups["HostName"].Value.Split('!')[0] : "";
+                    string displayName = messageMeta.TryGetValue("display-name", out var name) ? name : userName;
                     var newMessage = new TwitchMessage()
                     {
                         Id = messageMeta.TryGetValue("id", out var messageId) ? messageId : "", // TODO: default id of some sort?
                         Sender = new TwitchUser()
                         {
                             Id = messageMeta.TryGetValue("user-id", out var uid) ? uid : "",
-                            Name = messageSenderName,
-                            Color = messageMeta.TryGetValue("color", out var color) ? color : GetNameColor(messageSenderName),
+                            UserName = userName,
+                            DisplayName = displayName,
+                            Color = messageMeta.TryGetValue("color", out var color) ? color : ChatUtils.GetNameColor(userName),
                             IsModerator = badgeStr != null && badgeStr.Contains("moderator/"),
                             IsBroadcaster = badgeStr != null && badgeStr.Contains("broadcaster/"),
                             IsSubscriber = badgeStr != null && (badgeStr.Contains("subscriber/") || badgeStr.Contains("founder/")),
@@ -277,14 +265,15 @@ namespace ChatCore.Services.Twitch
                         Channel = channel != null ? channel : new TwitchChannel()
                         {
                             Id = messageChannelName,
+                            Name = messageChannelName,
                             Roomstate = messageRoomstate
                         },
-                        Emotes = messageEmotes.ToArray(), // TODO: test cheermote parsing
+                        Emotes = messageEmotes.ToArray(),
                         Message = messageText,
                         IsActionMessage = isActionMessage,
                         IsSystemMessage = messageType == "NOTICE" || messageType == "USERNOTICE",
                         IsHighlighted = isHighlighted,
-                        IsPing = !string.IsNullOrEmpty(messageText) && loggedInUser != null && messageText.Contains($"@{loggedInUser.Name}", StringComparison.OrdinalIgnoreCase),
+                        IsPing = !string.IsNullOrEmpty(messageText) && loggedInUser != null && messageText.Contains($"@{loggedInUser.DisplayName}", StringComparison.OrdinalIgnoreCase),
                         Bits = messageBits,
                         Metadata = messageMeta,
                         Type = messageType

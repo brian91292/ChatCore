@@ -34,6 +34,10 @@ namespace ChatCore.Services
         [ConfigMeta(Comment = "When enabled, Twitch cheermotes will be parsed.")]
         public bool ParseCheermotes = true;
 
+        [ConfigSection("Mixer")]
+        [ConfigMeta(Comment = "When enabled, Mixer emotes will be parsed.")]
+        public bool ParseMixerEmotes = true;
+
         public MainSettingsProvider(ILogger<MainSettingsProvider> logger, IPathProvider pathProvider)
         {
             _logger = logger;

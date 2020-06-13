@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Linq;
 using ChatCore.Models.Twitch;
+using ChatCore.Models;
 
 namespace ChatCore.Services
 {
@@ -36,6 +37,7 @@ namespace ChatCore.Services
                 service.OnLogin += Service_OnLogin;
                 service.OnChatCleared += Service_OnChatCleared;
                 service.OnMessageCleared += Service_OnMessageCleared;
+                service.OnChannelResourceDataCached += Service_OnChannelResourceDataCached;
 
                 if(sb.Length > 0)
                 {
@@ -51,6 +53,14 @@ namespace ChatCore.Services
         private TwitchService _twitchService;
         private MixerService _mixerService;
         private object _invokeLock = new object();
+
+        private void Service_OnChannelResourceDataCached(IChatService svc, IChatChannel channel, Dictionary<string, IChatResourceData> resources)
+        {
+            lock (_invokeLock)
+            {
+                _onChannelResourceDataCached.InvokeAll(Assembly.GetCallingAssembly(), svc, channel, resources, _logger);
+            }
+        }
 
         private void Service_OnMessageCleared(IChatService svc, string messageId)
         {

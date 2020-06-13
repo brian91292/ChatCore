@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ChatCore.Models;
+using ChatCore.SimpleJSON;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
@@ -18,7 +20,7 @@ namespace ChatCore.Interfaces
         /// <summary>
         /// True if the message is a /me message, or whatever the equivalent is on the current chat service.
         /// </summary>
-        bool IsActionMessage { get; }
+         bool IsActionMessage { get; }
         /// <summary>
         /// True if the message should be highlighted (pings, subscriber notifications, etc)
         /// </summary>
@@ -47,5 +49,7 @@ namespace ChatCore.Interfaces
         /// All the raw metadata associated with this message. This contains platform-specific data for devs who want to access any extra data that may not have been parsed.
         /// </summary>
         ReadOnlyDictionary<string, string> Metadata { get; }
+
+        JSONObject ToJson();
     }
 }

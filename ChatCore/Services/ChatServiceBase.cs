@@ -57,5 +57,12 @@ namespace ChatCore.Services
             add => _onMessageClearedCallbacks.AddAction(Assembly.GetCallingAssembly(), value);
             remove => _onMessageClearedCallbacks.RemoveAction(Assembly.GetCallingAssembly(), value);
         }
+
+        protected ConcurrentDictionary<Assembly, Action<IChatService, IChatChannel, Dictionary<string, IChatResourceData>>> _onChannelResourceDataCached = new ConcurrentDictionary<Assembly, Action<IChatService, IChatChannel, Dictionary<string, IChatResourceData>>>();
+        public event Action<IChatService, IChatChannel, Dictionary<string, IChatResourceData>> OnChannelResourceDataCached
+        {
+            add => _onChannelResourceDataCached.AddAction(Assembly.GetCallingAssembly(), value);
+            remove => _onChannelResourceDataCached.RemoveAction(Assembly.GetCallingAssembly(), value);
+        }
     }
 }

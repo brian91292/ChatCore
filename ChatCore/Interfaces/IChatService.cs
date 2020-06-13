@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ChatCore.Models;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
@@ -45,6 +46,11 @@ namespace ChatCore.Interfaces
         /// Callback that occurs when a specific chat message is cleared. Argument is the message id to be cleared.
         /// </summary>
         event Action<IChatService, string> OnMessageCleared;
+
+        /// <summary>
+        /// Fired once all known resources have been cached for this channel
+        /// </summary>
+        event Action<IChatService, IChatChannel, Dictionary<string, IChatResourceData>> OnChannelResourceDataCached;
 
         /// <summary>
         /// Sends a text message to the specified IChatChannel

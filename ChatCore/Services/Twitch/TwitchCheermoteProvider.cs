@@ -47,6 +47,7 @@ namespace ChatCore.Services.Twitch
                     int count = 0;
                     foreach (JSONNode node in json["actions"].AsArray.Values)
                     {
+                        //_logger.LogInformation($"Cheermote: {node.ToString()}");
                         TwitchCheermoteData cheermote = new TwitchCheermoteData();
                         string prefix = node["prefix"].Value.ToLower();
                         foreach (JSONNode tier in node["tiers"].Values)
@@ -55,7 +56,7 @@ namespace ChatCore.Services.Twitch
                             newTier.MinBits = tier["min_bits"].AsInt;
                             newTier.Color = tier["color"].Value;
                             newTier.CanCheer = tier["can_cheer"].AsBool;
-                            newTier.Uri = $"https://d3aqoihi2n8ty8.cloudfront.net/actions/{prefix}/dark/animated/{newTier.MinBits}/4.gif";
+                            newTier.Uri = tier["images"]["dark"]["animated"]["4"].Value;
                             //_logger.LogInformation($"Cheermote: {prefix}{newTier.MinBits}, URI: {newTier.Uri}");
                             cheermote.Tiers.Add(newTier);
                         }

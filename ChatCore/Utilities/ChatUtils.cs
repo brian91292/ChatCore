@@ -1,7 +1,5 @@
 ﻿using ChatCore.Interfaces;
-using ChatCore.Models.Mixer;
 using ChatCore.Models.Twitch;
-using ChatCore.Services.Mixer;
 using ChatCore.Services.Twitch;
 using System;
 using System.Collections.Concurrent;
@@ -40,37 +38,6 @@ namespace ChatCore
         public static TwitchEmote AsTwitchEmote(this IChatEmote emote)
         {
             return emote as TwitchEmote;
-        }
-
-
-        public static MixerService AsMixerService(this IChatService svc)
-        {
-            return svc as MixerService;
-        }
-
-        public static MixerMessage AsMixerMessage(this IChatMessage msg)
-        {
-            return msg as MixerMessage;
-        }
-
-        public static MixerChannel AsMixerChannel(this IChatChannel channel)
-        {
-            return channel as MixerChannel;
-        }
-
-        public static MixerUser AsMixerUser(this IChatUser user)
-        {
-            return user as MixerUser;
-        }
-
-        //public static MixerBadge AsMixerBadge(this IChatBadge badge)
-        //{
-        //    return badge as MixerBadge;
-        //}
-
-        public static MixerEmote AsMixerEmote(this IChatEmote emote)
-        {
-            return emote as MixerEmote;
         }
 
         private static ConcurrentDictionary<int, string> _userColors = new ConcurrentDictionary<int, string>();

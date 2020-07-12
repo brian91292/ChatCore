@@ -12,7 +12,5 @@ namespace ChatCore.Interfaces
         event Action<LoginCredentials> OnCredentialsUpdated;
         LoginCredentials Credentials { get; }
         void Save(bool callback = true);
-        Task MixerLogin();
-        Task<bool> TryRefreshMixerCredentials();
     }
 }

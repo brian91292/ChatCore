@@ -78,9 +78,5 @@ namespace StreamCoreTester
             streamingService.GetTwitchService().JoinChannel("xqcow");
         }
 
-        private void button3_Click(object sender, EventArgs e)
-        {
-            streamingService.GetMixerService().SendTextMessage("This is a test message :)", streamingService.GetMixerService().Channels.Values.First());
-        }
     }
 }

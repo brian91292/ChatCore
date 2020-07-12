@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using ChatCore.Interfaces;
-using ChatCore.Services.Mixer;
 using ChatCore.Services.Twitch;
 using System;
 using System.Collections.Generic;
@@ -25,7 +24,6 @@ namespace ChatCore.Services
             _logger = logger;
             _streamingServices = streamingServices;
             _twitchService = (TwitchService)streamingServices.First(s => s is TwitchService);
-            _mixerService = (MixerService)streamingServices.First(s => s is MixerService);
 
             StringBuilder sb = new StringBuilder();
             foreach (var service in _streamingServices)
@@ -51,7 +49,6 @@ namespace ChatCore.Services
         private ILogger _logger;
         private IList<IChatService> _streamingServices;
         private TwitchService _twitchService;
-        private MixerService _mixerService;
         private object _invokeLock = new object();
 
         private void Service_OnChannelResourceDataCached(IChatService svc, IChatChannel channel, Dictionary<string, IChatResourceData> resources)
@@ -129,11 +126,6 @@ namespace ChatCore.Services
         public TwitchService GetTwitchService()
         {
             return _twitchService;
-        }
-
-        public MixerService GetMixerService()
-        {
-            return _mixerService;
         }
     }
 }

@@ -7,7 +7,6 @@ using System.IO;
 using System.Text;
 using ChatCore.Config;
 using System.Threading.Tasks;
-using ChatCore.Services.Mixer;
 using System.Threading;
 using ChatCore.Models.OAuth;
 
@@ -29,11 +28,10 @@ namespace ChatCore.Services
         // If this is set, old StreamCore config data will be read in from this file.
         internal static string OldConfigPath = null;
 
-        public UserAuthProvider(ILogger<UserAuthProvider> logger, IPathProvider pathProvider, MixerShortcodeAuthProvider mixerAuthProvider)
+        public UserAuthProvider(ILogger<UserAuthProvider> logger, IPathProvider pathProvider)
         {
             _logger = logger;
             _pathProvider = pathProvider;
-            _mixerAuthProvider = mixerAuthProvider;
             _credentialsPath = Path.Combine(_pathProvider.GetDataPath(), "auth.ini");
             _credentialSerializer = new ObjectSerializer();
             _credentialSerializer.Load(Credentials, _credentialsPath);
@@ -81,7 +79,6 @@ namespace ChatCore.Services
 
         private ILogger _logger;
         private IPathProvider _pathProvider;
-        private MixerShortcodeAuthProvider _mixerAuthProvider;
         private string _credentialsPath;
         private ObjectSerializer _credentialSerializer;
         private DateTime _lastCredentialUpdateTime = DateTime.UtcNow;
@@ -94,57 +91,6 @@ namespace ChatCore.Services
             {
                 OnCredentialsUpdated?.Invoke(Credentials);
             }
-        }
-
-        private CancellationTokenSource _cancellationToken;
-        public async Task MixerLogin()
-        {
-            if(_cancellationToken != null) {
-                _cancellationToken.Cancel();
-            }
-            _cancellationToken = new CancellationTokenSource();
-            var grant = await _mixerAuthProvider.AwaitUserApproval(_cancellationToken.Token, launchBrowserProcess: true);
-            if(grant != null)
-            {
-                Credentials.Mixer_AccessToken = grant.AccessToken;
-                Credentials.Mixer_RefreshToken = grant.RefreshToken;
-                Credentials.Mixer_ExpiresAt = grant.ExpiresAt;
-                Save();
-            }
-        }
-
-
-
-        SemaphoreSlim _refreshCredentialsLock = new SemaphoreSlim(1, 1);
-        public async Task<bool> TryRefreshMixerCredentials()
-        {
-            var startTime = DateTime.UtcNow;
-            await _refreshCredentialsLock.WaitAsync();
-            if(startTime < _lastCredentialUpdateTime)
-            {
-                return true;
-            }
-            OAuthCredentials creds = null;
-            try
-            {
-                creds = await _mixerAuthProvider.TryRefreshCredentials(Credentials.Mixer_RefreshToken);
-                if (creds != null)
-                {
-                    Credentials.Mixer_RefreshToken = creds.RefreshToken;
-                    Credentials.Mixer_AccessToken = creds.AccessToken;
-                    Credentials.Mixer_ExpiresAt = creds.ExpiresAt;
-                    Save(false);
-                }
-            }
-            catch(Exception ex)
-            {
-                _logger.LogError(ex, "An unknown exception occurred while refreshing mixer credentials!");
-            }
-            finally
-            {
-                _refreshCredentialsLock.Release();
-            }
-            return creds != null;
         }
     }
 }

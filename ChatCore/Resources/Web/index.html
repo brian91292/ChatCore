@@ -87,10 +87,9 @@
 
     <script>
         let twitchIdCounter = document.getElementById("twitch-channel-container").getElementsByTagName("input").length;
-        let mixerIdCounter = document.getElementById("mixer-channel-container").getElementsByTagName("input").length;
 
         function toggleTwitchOAuthVis() {
-            var x = document.getElementById("twitch_oauth_input");
+            let x = document.getElementById("twitch_oauth_input");
             if (x.type === "password") {
                 x.type = "text";
             } else {
@@ -114,26 +113,6 @@
         }
         function removeTwitchChannel(channelId) {
             let container = document.getElementById("twitch-channel-container");
-            let channel = document.getElementById(channelId);
-            container.removeChild(channel);
-        }
-
-        function addMixerChannel() {
-            let container = document.getElementById("mixer-channel-container");
-            let channelId = "mixer_channel_" + mixerIdCounter;
-            let span = document.createElement("span");
-            span.id = channelId;
-            span.className = "chip";
-            span.innerHTML =
-                "<input type=\"text\" class=\"borderless-input\" name=\"mixer_channel\" placeholder=\"Mixer Channel\" value=\"\" />" +
-                "<button type=\"button\" onclick=\"removeMixerChannel('" + channelId + "')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\" />";
-            container.insertBefore(span, document.getElementById("add_mixer_channel_button"));
-            //container.appendChild(span);
-
-            mixerIdCounter++
-        }
-        function removeMixerChannel(channelId) {
-            let container = document.getElementById("mixer-channel-container");
             let channel = document.getElementById(channelId);
             container.removeChild(channel);
         }

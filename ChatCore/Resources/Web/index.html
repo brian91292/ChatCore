@@ -69,26 +69,6 @@
                 <div class="column col-auto">
                     <div class="panel settings-panel">
                         <div class="panel-header">
-                            <div class="panel-title">Mixer Settings</div>
-                        </div>
-                        <div class="panel-body">
-                            <label class="form-label">Login</label>
-                            {MixerLinkHtml}
-                            <label class="form-label">Channels</label>
-                            <div id="mixer-channel-container" class="my-2">
-                                {MixerChannelHtml}
-                                <span id="add_mixer_channel_button" class="chip">
-                                    <button id="add_mixer_channel_button" type="button" onclick="addMixerChannel()" class="btn btn-link btn-sm" aria-label="Close" role="button">+</button>
-                                </span>
-                            </div>
-                            <br />
-                            {MixerSettingsHTML}
-                        </div>
-                    </div>
-                </div>
-                <div class="column col-auto">
-                    <div class="panel settings-panel">
-                        <div class="panel-header">
                             <div class="panel-title">Global Settings</div>
                         </div>
                         <div class="panel-body">
@@ -107,10 +87,9 @@
 
     <script>
         let twitchIdCounter = document.getElementById("twitch-channel-container").getElementsByTagName("input").length;
-        let mixerIdCounter = document.getElementById("mixer-channel-container").getElementsByTagName("input").length;
 
         function toggleTwitchOAuthVis() {
-            var x = document.getElementById("twitch_oauth_input");
+            let x = document.getElementById("twitch_oauth_input");
             if (x.type === "password") {
                 x.type = "text";
             } else {
@@ -134,26 +113,6 @@
         }
         function removeTwitchChannel(channelId) {
             let container = document.getElementById("twitch-channel-container");
-            let channel = document.getElementById(channelId);
-            container.removeChild(channel);
-        }
-
-        function addMixerChannel() {
-            let container = document.getElementById("mixer-channel-container");
-            let channelId = "mixer_channel_" + mixerIdCounter;
-            let span = document.createElement("span");
-            span.id = channelId;
-            span.className = "chip";
-            span.innerHTML =
-                "<input type=\"text\" class=\"borderless-input\" name=\"mixer_channel\" placeholder=\"Mixer Channel\" value=\"\" />" +
-                "<button type=\"button\" onclick=\"removeMixerChannel('" + channelId + "')\" class=\"btn btn-clear\" aria-label=\"Close\" role=\"button\" />";
-            container.insertBefore(span, document.getElementById("add_mixer_channel_button"));
-            //container.appendChild(span);
-
-            mixerIdCounter++
-        }
-        function removeMixerChannel(channelId) {
-            let container = document.getElementById("mixer-channel-container");
             let channel = document.getElementById(channelId);
             container.removeChild(channel);
         }

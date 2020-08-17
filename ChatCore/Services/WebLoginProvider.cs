@@ -65,25 +65,7 @@ namespace ChatCore.Services
                 HttpListenerRequest req = ctx.Request;
                 HttpListenerResponse resp = ctx.Response;
 
-                if(req.HttpMethod == "GET" && req.Url.AbsolutePath == "/mixer")
-                {
-                    if (string.IsNullOrEmpty(_authManager.Credentials.Mixer_RefreshToken))
-                    {
-                        Task.Run(async () => await _authManager.MixerLogin());
-                    }
-                    else
-                    {
-                        // Why does mixer have no way to revoke oauth credentials? smh...
-                        _authManager.Credentials.Mixer_RefreshToken = "";
-                        _authManager.Credentials.Mixer_AccessToken = "";
-                        _authManager.Credentials.Mixer_ExpiresAt = DateTime.UtcNow;
-                        _authManager.Save();
-                    }
-                    resp.Redirect(req.UrlReferrer.OriginalString);
-                    resp.Close();
-                    return;
-                }
-                else if (req.HttpMethod == "POST" && req.Url.AbsolutePath == "/submit")
+                if (req.HttpMethod == "POST" && req.Url.AbsolutePath == "/submit")
                 {
                     using (var reader = new StreamReader(req.InputStream, req.ContentEncoding))
                     {

@@ -4,7 +4,6 @@ using ChatCore.Exceptions;
 using ChatCore.Interfaces;
 using ChatCore.Models;
 using ChatCore.Services;
-using ChatCore.Services.Mixer;
 using ChatCore.Services.Twitch;
 using System;
 using System.Collections.Generic;
@@ -20,7 +19,6 @@ using System.Net.Http;
 using ChatCore.Config;
 using System.Collections.Concurrent;
 using ChatCore.Logging;
-using ChatCore.Models.Mixer;
 
 namespace ChatCore
 {
@@ -66,19 +64,12 @@ namespace ChatCore
                         .AddSingleton<TwitchBadgeProvider>()
                         .AddSingleton<BTTVDataProvider>()
                         .AddSingleton<FFZDataProvider>()
-                        .AddSingleton<MixerService>()
-                        .AddSingleton<MixerServiceManager>()
-                        .AddSingleton<MixerMessageParser>()
-                        .AddSingleton<MixerDataProvider>()
-                        .AddSingleton<MixerShortcodeAuthProvider>()
-                        .AddSingleton<MixerAuthedHttpClient>()
                         .AddSingleton<IChatService>(x =>
                             new ChatServiceMultiplexer(
                                 x.GetService<ILogger<ChatServiceMultiplexer>>(),
                                 new List<IChatService>()
                                 {
-                                    x.GetService<TwitchService>(),
-                                    x.GetService<MixerService>()
+                                    x.GetService<TwitchService>()
                                 }
                             )
                         )
@@ -88,8 +79,7 @@ namespace ChatCore
                                 x.GetService<IChatService>(),
                                 new List<IChatServiceManager>
                                 {
-                                    x.GetService<TwitchServiceManager>(),
-                                    x.GetService<MixerServiceManager>()
+                                    x.GetService<TwitchServiceManager>()
                                 }
                             )
                         )
@@ -173,33 +163,6 @@ namespace ChatCore
             lock (_runLock)
             {
                 _serviceProvider.GetService<TwitchServiceManager>().Stop(Assembly.GetCallingAssembly());
-            }
-        }
-        /// <summary>
-        /// Starts the Mixer services if they haven't been already.
-        /// </summary>
-        /// <returns>A reference to the Mixer service</returns>
-        public MixerService RunMixerServices()
-        {
-            lock (_runLock)
-            {
-                if (_serviceProvider == null)
-                {
-                    throw new StreamCoreNotInitializedException("Make sure to call StreamCoreInstance.Create() to initialize StreamCore!");
-                }
-                var mixer = _serviceProvider.GetService<MixerServiceManager>();
-                mixer.Start(Assembly.GetCallingAssembly());
-                return mixer.GetService() as MixerService;
-            }
-        }
-        /// <summary>
-        /// Stops the Mixer services as long as no references remain. Make sure to unregister any callbacks first!
-        /// </summary>
-        public void StopMixerServices()
-        {
-            lock (_runLock)
-            {
-                _serviceProvider.GetService<MixerServiceManager>().Stop(Assembly.GetCallingAssembly());
             }
         }
 

@@ -26,17 +26,6 @@
             Stops the Twitch services as long as no references remain. Make sure to unregister any callbacks first!
             </summary>
         </member>
-        <member name="M:ChatCore.ChatCoreInstance.RunMixerServices">
-            <summary>
-            Starts the Mixer services if they haven't been already.
-            </summary>
-            <returns>A reference to the Mixer service</returns>
-        </member>
-        <member name="M:ChatCore.ChatCoreInstance.StopMixerServices">
-            <summary>
-            Stops the Mixer services as long as no references remain. Make sure to unregister any callbacks first!
-            </summary>
-        </member>
         <member name="M:ChatCore.ChatCoreInstance.LaunchWebApp">
             <summary>
             Launches the settings WebApp in the users default browser.
@@ -218,20 +207,6 @@
             <summary>
             A multiplexer for all the supported streaming services.
             </summary>
-        </member>
-        <member name="M:ChatCore.Services.Mixer.MixerDataProvider.GetChannelIdFromUsername(System.String)">
-            <summary>
-            Grabs a channel id based on a username, or null if the channel does not exist.
-            </summary>
-            <param name="username">The username to retrieve the channel id for.</param>
-            <returns>The channel id, or null if it does not exist.</returns>
-        </member>
-        <member name="M:ChatCore.Services.Mixer.MixerDataProvider.GetChannelDetails(System.String)">
-            <summary>
-            Grabs details about a specific Mixer channel by id, returns null if the channel id doesn't exist
-            </summary>
-            <param name="channelId">The channel id to retrieve details for.</param>
-            <returns>The channel details, or null if it does not exist.</returns>
         </member>
         <member name="M:ChatCore.Services.Twitch.TwitchMessageParser.ParseRawMessage(System.String,System.Collections.Concurrent.ConcurrentDictionary{System.String,ChatCore.Interfaces.IChatChannel},ChatCore.Interfaces.IChatUser,ChatCore.Interfaces.IChatMessage[]@)">
             <summary>

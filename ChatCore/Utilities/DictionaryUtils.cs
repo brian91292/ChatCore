@@ -31,35 +31,42 @@ namespace ChatCore
 
 		public static void RemoveAction(this ConcurrentDictionary<Assembly, Action> dict, Assembly assembly, Action value)
 		{
-            if (!dict.TryGetValue(assembly, out var action))
+			if (!dict.TryGetValue(assembly, out _))
 			{
 				return;
 			}
-            action -= value;
+
+			dict[assembly] -= value;
 		}
+
 		public static void RemoveAction<A>(this ConcurrentDictionary<Assembly, Action<A>> dict, Assembly assembly, Action<A> value)
 		{
-            if (!dict.TryGetValue(assembly, out var action))
+			if (!dict.TryGetValue(assembly, out _))
 			{
 				return;
 			}
-            action -= value;
+
+			dict[assembly] -= value;
 		}
+
 		public static void RemoveAction<A, B>(this ConcurrentDictionary<Assembly, Action<A, B>> dict, Assembly assembly, Action<A, B> value)
 		{
-            if (!dict.TryGetValue(assembly, out var action))
+			if (!dict.TryGetValue(assembly, out _))
 			{
 				return;
 			}
-            action -= value;
+
+			dict[assembly] -= value;
 		}
+
 		public static void RemoveAction<A, B, C>(this ConcurrentDictionary<Assembly, Action<A, B, C>> dict, Assembly assembly, Action<A, B, C> value)
 		{
-            if (!dict.TryGetValue(assembly, out var action))
+			if (!dict.TryGetValue(assembly, out _))
 			{
 				return;
 			}
-            action -= value;
+
+			dict[assembly] -= value;
 		}
 
 		public static void InvokeAll(this ConcurrentDictionary<Assembly, Action> dict, Assembly assembly, ILogger logger = null)
@@ -70,6 +77,7 @@ namespace ChatCore
 				{
 					continue;
 				}
+
 				try
 				{
 					kvp.Value?.Invoke();
@@ -80,6 +88,7 @@ namespace ChatCore
 				}
 			}
 		}
+
 		public static void InvokeAll<A>(this ConcurrentDictionary<Assembly, Action<A>> dict, Assembly assembly, A a, ILogger logger = null)
 		{
 			foreach (var kvp in dict)
@@ -88,6 +97,7 @@ namespace ChatCore
 				{
 					continue;
 				}
+
 				try
 				{
 					kvp.Value?.Invoke(a);
@@ -98,6 +108,7 @@ namespace ChatCore
 				}
 			}
 		}
+
 		public static void InvokeAll<A, B>(this ConcurrentDictionary<Assembly, Action<A, B>> dict, Assembly assembly, A a, B b, ILogger logger = null)
 		{
 			foreach (var kvp in dict)
@@ -106,6 +117,7 @@ namespace ChatCore
 				{
 					continue;
 				}
+
 				try
 				{
 					kvp.Value?.Invoke(a, b);
@@ -116,6 +128,7 @@ namespace ChatCore
 				}
 			}
 		}
+
 		public static void InvokeAll<A, B, C>(this ConcurrentDictionary<Assembly, Action<A, B, C>> dict, Assembly assembly, A a, B b, C c, ILogger logger = null)
 		{
 			foreach (var kvp in dict)
@@ -124,6 +137,7 @@ namespace ChatCore
 				{
 					continue;
 				}
+
 				try
 				{
 					kvp.Value?.Invoke(a, b, c);

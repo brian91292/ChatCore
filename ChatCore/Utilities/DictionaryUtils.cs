@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
 
 namespace ChatCore
 {
@@ -31,42 +29,34 @@ namespace ChatCore
 
 		public static void RemoveAction(this ConcurrentDictionary<Assembly, Action> dict, Assembly assembly, Action value)
 		{
-			if (!dict.TryGetValue(assembly, out _))
+			if (dict.ContainsKey(assembly))
 			{
-				return;
+				dict[assembly] -= value;
 			}
-
-			dict[assembly] -= value;
 		}
 
 		public static void RemoveAction<A>(this ConcurrentDictionary<Assembly, Action<A>> dict, Assembly assembly, Action<A> value)
 		{
-			if (!dict.TryGetValue(assembly, out _))
+			if (dict.ContainsKey(assembly))
 			{
-				return;
+				dict[assembly] -= value;
 			}
-
-			dict[assembly] -= value;
 		}
 
 		public static void RemoveAction<A, B>(this ConcurrentDictionary<Assembly, Action<A, B>> dict, Assembly assembly, Action<A, B> value)
 		{
-			if (!dict.TryGetValue(assembly, out _))
+			if (dict.ContainsKey(assembly))
 			{
-				return;
+				dict[assembly] -= value;
 			}
-
-			dict[assembly] -= value;
 		}
 
 		public static void RemoveAction<A, B, C>(this ConcurrentDictionary<Assembly, Action<A, B, C>> dict, Assembly assembly, Action<A, B, C> value)
 		{
-			if (!dict.TryGetValue(assembly, out _))
+			if (dict.ContainsKey(assembly))
 			{
-				return;
+				dict[assembly] -= value;
 			}
-
-			dict[assembly] -= value;
 		}
 
 		public static void InvokeAll(this ConcurrentDictionary<Assembly, Action> dict, Assembly assembly, ILogger logger = null)
